@@ -1,9 +1,10 @@
+"Modeline and Notes {
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Maintainer:
 "       Kurt Dillen
 "
 " Version:
-"       1.2.1 - 2015-11-21
+"       2.0.0 - 2015-11-22
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -32,103 +33,331 @@
 "     -> Fast editing and reloading of vimrc configs
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" }
 
+" Environment {
+
+  " Identify platform {
+    silent function! OSX()
+      return has('macunix')
+    endfunction
+    silent function! LINUX()
+      return has('unix') && !has('macunix') && !has('win32unix')
+    endfunction
+    silent function! WINDOWS()
+      return  (has('win32') || has('win64'))
+    endfunction
+  " }
+
+  " Basics {
+    set nocompatible        " Must be first line
+    set background=dark     " Assume a dark background
+    if !WINDOWS()
+      set shell=/bin/sh
+    endif
+  " }
+
+  " Windows Compatible {
+    " On Windows, also use '.vim' instead of 'vimfiles'; this makes synchronization
+    " across (heterogeneous) systems easier.
+    if WINDOWS()
+      set runtimepath=$HOME/.vim,$VIM/vimfiles,$VIMRUNTIME,$VIM/vimfiles/after,$HOME/.vim/after
+
+      " Be nice and check for multi_byte even if the config requires
+      " multi_byte support most of the time
+      if has("multi_byte")
+        " Windows cmd.exe still uses cp850. If Windows ever moved to
+        " Powershell as the primary terminal, this would be utf-8
+        set termencoding=cp850
+        " Let Vim use utf-8 internally, because many scripts require this
+        set encoding=utf-8
+        setglobal fileencoding=utf-8
+        " Windows has traditionally used cp1252, so it's probably wise to
+        " fallback into cp1252 instead of eg. iso-8859-15.
+        " Newer Windows files might contain utf-8 or utf-16 LE so we might
+        " want to try them first.
+        set fileencodings=ucs-bom,utf-8,utf-16le,cp1252,iso-8859-15
+      endif
+    endif
+  " }
+
+  " Arrow Key Fix {
+    if &term[:4] == "xterm" || &term[:5] == 'screen' || &term[:3] == 'rxvt'
+        inoremap <silent> <C-[>OC <RIGHT>
+    endif
+  " }
+" }
+
+" kd options {
+
+  " Prevent automatically changing to open file directory
+  "   let g:kd_no_autochdir = 1
+
+  " Disable views
+  "   let g:kd_no_views = 1
+
+  " Leader keys
+  "   let g:kd_leader='\'
+  "   let g:kd_localleader='_'
+
+  " Disable easier moving in tabs and windows
+  "   let g:kd_no_easyWindows = 1
+
+  " Disable wrap relative motion for start/end line motions
+  "   let g:kd_no_wrapRelMotion = 1
+
+  " Disable fast tab navigation
+  "   let g:kd_no_fastTabs = 1
+
+  " Clear search highlighting
+  "   let g:kd_clear_search_highlight = 1
+
+  " Disable neosnippet expansion
+  " This maps over <C-k> and does some Supertab
+  " emulation with snippets
+  "   let g:kd_no_neosnippet_expand = 1
+
+  " Disable whitespace stripping
+  "   let g:kd_keep_trailing_whitespace = 1
+
+  " Enable powerline symbols
+  "   let g:airline_powerline_fonts = 1
+
+  " vim files directory
+  "   let g:kd_consolidated_directory = <full path to desired directory>
+  "   eg: let g:kd_consolidated_directory = $HOME . '/.vim/'
+
+  " This makes the completion popup strictly passive.
+  " Keypresses acts normally. <ESC> takes you of insert mode, words don't
+  " automatically complete, pressing <CR> inserts a newline, etc. Iff the
+  " menu is open, tab will cycle through it. If a snippet is selected, <C-k>
+  " expands it and jumps between fields.
+  "   let g:kd_noninvasive_completion = 1
+
+  " Don't turn conceallevel or concealcursor
+  "   let g:kd_no_conceal = 1
+
+  " For some colorschemes, autocolor will not work (eg: 'desert', 'ir_black')
+  " Indent guides will attempt to set your colors smartly. If you
+  " want to control them yourself, do it here.
+  "   let g:indent_guides_auto_colors = 0
+  "   autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  guibg=#212121 ctermbg=233
+  "   autocmd VimEnter,Colorscheme * :hi IndentGuidesEven guibg=#404040 ctermbg=234
+
+  " Leave the default font and size in GVim
+  " To set your own font, do it from ~/.vimrc.local
+  "   let g:kd_no_big_font = 1
+
+  " Disable  omni complete
+  "   let g:kd_no_omni_complete = 1
+
+  " Don't create default mappings for multicursors
+  " See :help multiple-cursors-mappings
+  "   let g:multi_cursor_use_default_mapping=0
+  "   let g:multi_cursor_next_key='<C-n>'
+  "   let g:multi_cursor_prev_key='<C-p>'
+  "   let g:multi_cursor_skip_key='<C-x>'
+  "   let g:multi_cursor_quit_key='<Esc>'
+  " Require a special keypress to enter multiple cursors mode
+  "   let g:multi_cursor_start_key='+'
+
+  " Mappings for editing/applying kd config
+  "   let g:kd_edit_config_mapping='<leader>ev'
+  "   let g:kd_apply_config_mapping='<leader>sv'
+" }
+
+" Use local before if available {
+  if filereadable(expand("~/.vimrc.before.local"))
+    source ~/.vimrc.before.local
+  endif
+" }
+
+" Vundle Install {
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Vundle Install + Bundles
+" => Vundle Install
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Use Vim Defaults
-set nocompatible
+  " Install Vundle {
+    " Required for Vundle Install
+    filetype off
 
-" Required for Vundle Install
-filetype off
+    " Setting up Vundle - the vim plugin bundler
+    let iCanHazVundle=1
+    let vundle_readme=expand('~/.vim/bundle/vundle/README.md')
 
-" Setting up Vundle - the vim plugin bundler
-let iCanHazVundle=1
-let vundle_readme=expand('~/.vim/bundle/vundle/README.md')
+    if !filereadable(vundle_readme)
+      echo "Installing Vundle.."
+      echo ""
+      silent !mkdir -p ~/.vim/bundle
+      silent !git clone https://github.com/gmarik/vundle ~/.vim/bundle/vundle
+      let iCanHazVundle=0
+    endif
+  " }
 
-if !filereadable(vundle_readme)
-  echo "Installing Vundle.."
-  echo ""
-  silent !mkdir -p ~/.vim/bundle
-  silent !git clone https://github.com/gmarik/vundle ~/.vim/bundle/vundle
-  "silent !git clone https://github.com/gmarik/Vundle.vim.git ~/.vim/bundle/vundle
-  let iCanHazVundle=0
-endif
+  " Setup Bundle Support {
+    " The next three lines ensure that the ~/.vim/bundle/ system works
+    filetype off
+    set rtp+=~/.vim/bundle/vundle
+    call vundle#rc()
+  " }
 
-set rtp+=~/.vim/bundle/vundle/
-call vundle#rc()
+  " Add an UnBundle command {
+    function! UnBundle(arg, ...)
+      let bundle = vundle#config#init_bundle(a:arg, a:000)
+      call filter(g:vundle#bundles, 'v:val["name_spec"] != "' . a:arg . '"')
+    endfunction
 
-Bundle 'gmarik/vundle'
+    com! -nargs=+         UnBundle
+    \ call UnBundle(<args>)
+  " }
+" }
 
-" General Bundles
-"
-Bundle 'scrooloose/nerdtree'
-"Bundle 'jistr/vim-nerdtree-tabs'
-Bundle 'tpope/vim-surround'
-Bundle 'tpope/vim-repeat'
-Bundle 'spf13/vim-autoclose'
-Bundle 'ctrlpvim/ctrlp.vim'
-Bundle 'tacahiroy/ctrlp-funky'
-Bundle 'terryma/vim-multiple-cursors'
-"Bundle 'vim-scripts/sessionman.vim'
-"Bundle 'matchit.zip'
-"Bundle 'bling/vim-bufferline'
-Bundle 'Lokaltog/vim-easymotion'
-Bundle 'sjl/gundo.vim'
-"Bundle 'mbbill/undotree'
-Bundle 'nathanaelkane/vim-indent-guides'
-Bundle 'mhinz/vim-signify'
-"Bundle 'tpope/vim-abolish.git'
-"Bundle 'osyo-manga/vim-over'
-"Bundle 'kana/vim-textobj-user'
-"Bundle 'kana/vim-textobj-indent'
-"Bundle 'gcmt/wildfire.vim'
-Bundle 'bronson/vim-trailing-whitespace'
-"
-" Looks Related
-"
-Bundle 'bling/vim-airline'
-"
-" Vim Color Schema's
-"
-"Bundle 'spf13/vim-colors'
-"Bundle 'flazz/vim-colorschemes'
-Bundle 'blackcobra1973/kd-vim-colors'
-"Bundle 'altercation/vim-colors-solarized'
-"
-" Writing Related
-"
-"Bundle 'reedes/vim-litecorrect'
-"Bundle 'reedes/vim-textobj-sentence'
-"Bundle 'reedes/vim-textobj-quote'
-"Bundle 'reedes/vim-wordy'
-"
-" General Programming
-"
-Bundle 'scrooloose/syntastic'
-Bundle 'tpope/vim-fugitive'
-Bundle 'mattn/webapi-vim'
-Bundle 'mattn/gist-vim'
-Bundle 'scrooloose/nerdcommenter'
-Bundle 'tpope/vim-commentary'
-Bundle 'godlygeek/tabular'
-if executable('ctags')
-    Bundle 'majutsushi/tagbar'
-endif
-"
-" Snippets & Autocomplete
-"
-Bundle 'Shougo/neocomplcache'
-Bundle 'Shougo/neosnippet'
-Bundle 'Shougo/neosnippet-snippets'
-Bundle 'honza/vim-snippets'
-"
-" PHP
-"
-"Bundle 'spf13/PIV'
-"Bundle 'arnaud-lb/vim-php-namespace'
-"Bundle 'beyondwords/vim-twig'
-"
+" Bundles {
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Bundles
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+  " Deps {
+      Bundle 'gmarik/vundle'
+      Bundle 'MarcWeber/vim-addon-mw-utils'
+      Bundle 'tomtom/tlib_vim'
+      if executable('ag')
+          Bundle 'mileszs/ack.vim'
+          let g:ackprg = 'ag --nogroup --nocolor --column --smart-case'
+      elseif executable('ack-grep')
+          let g:ackprg="ack-grep -H --nocolor --nogroup --column"
+          Bundle 'mileszs/ack.vim'
+      elseif executable('ack')
+          Bundle 'mileszs/ack.vim'
+      endif
+  " }
+
+  " In your .vimrc.before.local file
+  " list only the plugin groups you will use
+  if !exists('g:kd_bundle_groups')
+      " Original spf13 default bundle set
+      "let g:kd_bundle_groups=['general', 'writing', 'neocomplete', 'programming', 'php', 'ruby', 'python', 'javascript', 'html', 'misc',]
+      " KD default bundle set
+      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'php', 'ruby', 'python', 'javascript', 'html', 'misc',]
+
+  endif
+
+  " To override all the included bundles, add the following to your
+  " .vimrc.bundles.local file:
+  "   let g:override_kd_bundles = 1
+  if !exists("g:override_kd_bundles")
+
+  " General {
+    if count(g:kd_bundle_groups, 'general')
+      Bundle 'scrooloose/nerdtree'
+      Bundle 'blackcobra1973/kd-vim-colors'
+      Bundle 'tpope/vim-surround'
+      Bundle 'tpope/vim-repeat'
+      Bundle 'rhysd/conflict-marker.vim'
+      Bundle 'jiangmiao/auto-pairs'
+      Bundle 'ctrlpvim/ctrlp.vim'
+      Bundle 'tacahiroy/ctrlp-funky'
+      Bundle 'terryma/vim-multiple-cursors'
+      Bundle 'vim-scripts/sessionman.vim'
+      Bundle 'matchit.zip'
+      if (has("python") || has("python3")) && exists('g:kd_use_powerline') && !exists('g:kd_use_old_powerline')
+        Bundle 'Lokaltog/powerline', {'rtp':'/powerline/bindings/vim'}
+      elseif exists('g:kd_use_powerline') && exists('g:kd_use_old_powerline')
+        Bundle 'Lokaltog/vim-powerline'
+      else
+        Bundle 'bling/vim-airline'
+      endif
+      Bundle 'powerline/fonts'
+      Bundle 'bling/vim-bufferline'
+      Bundle 'easymotion/vim-easymotion'
+      Bundle 'jistr/vim-nerdtree-tabs'
+      Bundle 'flazz/vim-colorschemes'
+      if has("python") || has("python3")
+        Bundle 'sjl/gundo.vim'
+      else
+        Bundle 'mbbill/undotree'
+      endif
+      Bundle 'nathanaelkane/vim-indent-guides'
+      if !exists('g:kd_no_views')
+        Bundle 'vim-scripts/restore_view.vim'
+      endif
+      Bundle 'mhinz/vim-signify'
+      Bundle 'tpope/vim-abolish.git'
+      Bundle 'osyo-manga/vim-over'
+      Bundle 'kana/vim-textobj-user'
+      Bundle 'kana/vim-textobj-indent'
+      Bundle 'gcmt/wildfire.vim'
+      " KD Extra general bundles
+      Bundle 'spf13/vim-autoclose'
+      Bundle 'bronson/vim-trailing-whitespace'
+    endif
+  " }
+
+  " Extra Color schemes {
+    if count(g:kd_bundle_groups, 'colorschemes')
+      Bundle 'altercation/vim-colors-solarized'
+      Bundle 'spf13/vim-colors'
+      Bundle 'flazz/vim-colorschemes'
+    endif
+  " }
+
+  " Writing {
+    if count(g:kd_bundle_groups, 'writing')
+      Bundle 'reedes/vim-litecorrect'
+      Bundle 'reedes/vim-textobj-sentence'
+      Bundle 'reedes/vim-textobj-quote'
+      Bundle 'reedes/vim-wordy'
+    endif
+  " }
+
+  " General Programming {
+    if count(g:kd_bundle_groups, 'programming')
+      " Pick one of the checksyntax, jslint, or syntastic
+      Bundle 'scrooloose/syntastic'
+      Bundle 'tpope/vim-fugitive'
+      Bundle 'mattn/webapi-vim'
+      Bundle 'mattn/gist-vim'
+      Bundle 'scrooloose/nerdcommenter'
+      Bundle 'tpope/vim-commentary'
+      Bundle 'godlygeek/tabular'
+      Bundle 'luochen1990/rainbow'
+      if executable('ctags')
+        Bundle 'majutsushi/tagbar'
+      endif
+    endif
+  " }
+
+  " Snippets & AutoComplete {
+    if count(g:kd_bundle_groups, 'snipmate')
+      Bundle 'garbas/vim-snipmate'
+      Bundle 'honza/vim-snippets'
+      " Source support_function.vim to support vim-snippets.
+      if filereadable(expand("~/.vim/bundle/vim-snippets/snippets/support_functions.vim"))
+        source ~/.vim/bundle/vim-snippets/snippets/support_functions.vim
+      endif
+      elseif count(g:kd_bundle_groups, 'youcompleteme')
+        Bundle 'Valloric/YouCompleteMe'
+        Bundle 'SirVer/ultisnips'
+        Bundle 'honza/vim-snippets'
+      elseif count(g:kd_bundle_groups, 'neocomplcache')
+        Bundle 'Shougo/neocomplcache'
+        Bundle 'Shougo/neosnippet'
+        Bundle 'Shougo/neosnippet-snippets'
+        Bundle 'honza/vim-snippets'
+      elseif count(g:kd_bundle_groups, 'neocomplete')
+        Bundle 'Shougo/neocomplete.vim.git'
+        Bundle 'Shougo/neosnippet'
+        Bundle 'Shougo/neosnippet-snippets'
+        Bundle 'honza/vim-snippets'
+      endif
+  " }
+
+  " PHP {
+    if count(g:kd_bundle_groups, 'php')
+      Bundle 'spf13/PIV'
+      Bundle 'arnaud-lb/vim-php-namespace'
+      Bundle 'beyondwords/vim-twig'
+    endif
+  " }
+
 " Python
 "
 "Bundle 'klen/python-mode'
@@ -209,6 +438,8 @@ Bundle 'tpope/vim-cucumber'
 "Bundle 'cespare/vim-toml'
 Bundle 'quentindecock/vim-cucumber-align-pipes'
 "Bundle 'saltstack/salt-vim'
+
+" }
 
 if iCanHazVundle == 0
   echo "Installing Bundles, please ignore key map error messages"
