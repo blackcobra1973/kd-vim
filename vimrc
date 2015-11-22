@@ -1,4 +1,4 @@
-"Modeline and Notes {
+" Modeline and Notes {
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Maintainer:
 "       Kurt Dillen
@@ -236,7 +236,7 @@
       " Original spf13 default bundle set
       "let g:kd_bundle_groups=['general', 'writing', 'neocomplete', 'programming', 'php', 'ruby', 'python', 'javascript', 'html', 'misc',]
       " KD default bundle set
-      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'php', 'ruby', 'python', 'javascript', 'html', 'misc',]
+      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'puppet', 'docker', 'javascript', 'html', 'misc',]
 
   endif
 
@@ -245,200 +245,232 @@
   "   let g:override_kd_bundles = 1
   if !exists("g:override_kd_bundles")
 
-  " General {
-    if count(g:kd_bundle_groups, 'general')
-      Bundle 'scrooloose/nerdtree'
-      Bundle 'blackcobra1973/kd-vim-colors'
-      Bundle 'tpope/vim-surround'
-      Bundle 'tpope/vim-repeat'
-      Bundle 'rhysd/conflict-marker.vim'
-      Bundle 'jiangmiao/auto-pairs'
-      Bundle 'ctrlpvim/ctrlp.vim'
-      Bundle 'tacahiroy/ctrlp-funky'
-      Bundle 'terryma/vim-multiple-cursors'
-      Bundle 'vim-scripts/sessionman.vim'
-      Bundle 'matchit.zip'
-      if (has("python") || has("python3")) && exists('g:kd_use_powerline') && !exists('g:kd_use_old_powerline')
-        Bundle 'Lokaltog/powerline', {'rtp':'/powerline/bindings/vim'}
-      elseif exists('g:kd_use_powerline') && exists('g:kd_use_old_powerline')
-        Bundle 'Lokaltog/vim-powerline'
-      else
-        Bundle 'bling/vim-airline'
+    " General {
+      if count(g:kd_bundle_groups, 'general')
+        Bundle 'scrooloose/nerdtree'
+        Bundle 'blackcobra1973/kd-vim-colors'
+        Bundle 'tpope/vim-surround'
+        Bundle 'tpope/vim-repeat'
+        Bundle 'rhysd/conflict-marker.vim'
+        Bundle 'jiangmiao/auto-pairs'
+        Bundle 'ctrlpvim/ctrlp.vim'
+        Bundle 'tacahiroy/ctrlp-funky'
+        Bundle 'terryma/vim-multiple-cursors'
+        Bundle 'vim-scripts/sessionman.vim'
+        Bundle 'matchit.zip'
+        if (has("python") || has("python3")) && exists('g:kd_use_powerline') && !exists('g:kd_use_old_powerline')
+          Bundle 'Lokaltog/powerline', {'rtp':'/powerline/bindings/vim'}
+        elseif exists('g:kd_use_powerline') && exists('g:kd_use_old_powerline')
+          Bundle 'Lokaltog/vim-powerline'
+        else
+          Bundle 'bling/vim-airline'
+        endif
+        Bundle 'powerline/fonts'
+        Bundle 'bling/vim-bufferline'
+        Bundle 'easymotion/vim-easymotion'
+        Bundle 'jistr/vim-nerdtree-tabs'
+        Bundle 'flazz/vim-colorschemes'
+        if has("python") || has("python3")
+          Bundle 'sjl/gundo.vim'
+        else
+          Bundle 'mbbill/undotree'
+        endif
+        Bundle 'nathanaelkane/vim-indent-guides'
+        if !exists('g:kd_no_views')
+          Bundle 'vim-scripts/restore_view.vim'
+        endif
+        Bundle 'mhinz/vim-signify'
+        Bundle 'tpope/vim-abolish.git'
+        Bundle 'osyo-manga/vim-over'
+        Bundle 'kana/vim-textobj-user'
+        Bundle 'kana/vim-textobj-indent'
+        Bundle 'gcmt/wildfire.vim'
+        " KD Extra general bundles
+        Bundle 'spf13/vim-autoclose'
+        Bundle 'bronson/vim-trailing-whitespace'
       endif
-      Bundle 'powerline/fonts'
-      Bundle 'bling/vim-bufferline'
-      Bundle 'easymotion/vim-easymotion'
-      Bundle 'jistr/vim-nerdtree-tabs'
-      Bundle 'flazz/vim-colorschemes'
-      if has("python") || has("python3")
-        Bundle 'sjl/gundo.vim'
-      else
-        Bundle 'mbbill/undotree'
-      endif
-      Bundle 'nathanaelkane/vim-indent-guides'
-      if !exists('g:kd_no_views')
-        Bundle 'vim-scripts/restore_view.vim'
-      endif
-      Bundle 'mhinz/vim-signify'
-      Bundle 'tpope/vim-abolish.git'
-      Bundle 'osyo-manga/vim-over'
-      Bundle 'kana/vim-textobj-user'
-      Bundle 'kana/vim-textobj-indent'
-      Bundle 'gcmt/wildfire.vim'
-      " KD Extra general bundles
-      Bundle 'spf13/vim-autoclose'
-      Bundle 'bronson/vim-trailing-whitespace'
-    endif
-  " }
+    " }
 
-  " Extra Color schemes {
-    if count(g:kd_bundle_groups, 'colorschemes')
-      Bundle 'altercation/vim-colors-solarized'
-      Bundle 'spf13/vim-colors'
-      Bundle 'flazz/vim-colorschemes'
-    endif
-  " }
-
-  " Writing {
-    if count(g:kd_bundle_groups, 'writing')
-      Bundle 'reedes/vim-litecorrect'
-      Bundle 'reedes/vim-textobj-sentence'
-      Bundle 'reedes/vim-textobj-quote'
-      Bundle 'reedes/vim-wordy'
-    endif
-  " }
-
-  " General Programming {
-    if count(g:kd_bundle_groups, 'programming')
-      " Pick one of the checksyntax, jslint, or syntastic
-      Bundle 'scrooloose/syntastic'
-      Bundle 'tpope/vim-fugitive'
-      Bundle 'mattn/webapi-vim'
-      Bundle 'mattn/gist-vim'
-      Bundle 'scrooloose/nerdcommenter'
-      Bundle 'tpope/vim-commentary'
-      Bundle 'godlygeek/tabular'
-      Bundle 'luochen1990/rainbow'
-      if executable('ctags')
-        Bundle 'majutsushi/tagbar'
+    " Extra Color schemes {
+      if count(g:kd_bundle_groups, 'colorschemes')
+        Bundle 'altercation/vim-colors-solarized'
+        Bundle 'spf13/vim-colors'
+        Bundle 'flazz/vim-colorschemes'
       endif
-    endif
-  " }
+    " }
 
-  " Snippets & AutoComplete {
-    if count(g:kd_bundle_groups, 'snipmate')
-      Bundle 'garbas/vim-snipmate'
-      Bundle 'honza/vim-snippets'
-      " Source support_function.vim to support vim-snippets.
-      if filereadable(expand("~/.vim/bundle/vim-snippets/snippets/support_functions.vim"))
-        source ~/.vim/bundle/vim-snippets/snippets/support_functions.vim
+    " Writing {
+      if count(g:kd_bundle_groups, 'writing')
+        Bundle 'reedes/vim-litecorrect'
+        Bundle 'reedes/vim-textobj-sentence'
+        Bundle 'reedes/vim-textobj-quote'
+        Bundle 'reedes/vim-wordy'
       endif
-      elseif count(g:kd_bundle_groups, 'youcompleteme')
-        Bundle 'Valloric/YouCompleteMe'
-        Bundle 'SirVer/ultisnips'
+    " }
+
+    " General Programming {
+      if count(g:kd_bundle_groups, 'programming')
+        " Pick one of the checksyntax, jslint, or syntastic
+        Bundle 'scrooloose/syntastic'
+        Bundle 'tpope/vim-fugitive'
+        Bundle 'mattn/webapi-vim'
+        Bundle 'mattn/gist-vim'
+        Bundle 'scrooloose/nerdcommenter'
+        Bundle 'tpope/vim-commentary'
+        Bundle 'godlygeek/tabular'
+        Bundle 'luochen1990/rainbow'
+        if executable('ctags')
+          Bundle 'majutsushi/tagbar'
+        endif
+      endif
+    " }
+
+    " Snippets & AutoComplete {
+      if count(g:kd_bundle_groups, 'snipmate')
+        Bundle 'garbas/vim-snipmate'
         Bundle 'honza/vim-snippets'
-      elseif count(g:kd_bundle_groups, 'neocomplcache')
-        Bundle 'Shougo/neocomplcache'
-        Bundle 'Shougo/neosnippet'
-        Bundle 'Shougo/neosnippet-snippets'
-        Bundle 'honza/vim-snippets'
-      elseif count(g:kd_bundle_groups, 'neocomplete')
-        Bundle 'Shougo/neocomplete.vim.git'
-        Bundle 'Shougo/neosnippet'
-        Bundle 'Shougo/neosnippet-snippets'
-        Bundle 'honza/vim-snippets'
+        " Source support_function.vim to support vim-snippets.
+        if filereadable(expand("~/.vim/bundle/vim-snippets/snippets/support_functions.vim"))
+          source ~/.vim/bundle/vim-snippets/snippets/support_functions.vim
+        endif
+        elseif count(g:kd_bundle_groups, 'youcompleteme')
+          Bundle 'Valloric/YouCompleteMe'
+          Bundle 'SirVer/ultisnips'
+          Bundle 'honza/vim-snippets'
+        elseif count(g:kd_bundle_groups, 'neocomplcache')
+          Bundle 'Shougo/neocomplcache'
+          Bundle 'Shougo/neosnippet'
+          Bundle 'Shougo/neosnippet-snippets'
+          Bundle 'honza/vim-snippets'
+        elseif count(g:kd_bundle_groups, 'neocomplete')
+          Bundle 'Shougo/neocomplete.vim.git'
+          Bundle 'Shougo/neosnippet'
+          Bundle 'Shougo/neosnippet-snippets'
+          Bundle 'honza/vim-snippets'
+        endif
+    " }
+
+    " PHP {
+      if count(g:kd_bundle_groups, 'php')
+        Bundle 'spf13/PIV'
+        Bundle 'arnaud-lb/vim-php-namespace'
+        Bundle 'beyondwords/vim-twig'
       endif
-  " }
+    " }
 
-  " PHP {
-    if count(g:kd_bundle_groups, 'php')
-      Bundle 'spf13/PIV'
-      Bundle 'arnaud-lb/vim-php-namespace'
-      Bundle 'beyondwords/vim-twig'
-    endif
-  " }
+    " Python {
+      if count(g:kd_bundle_groups, 'python')
+        " Pick either python-mode or pyflakes & pydoc
+        Bundle 'klen/python-mode'
+        Bundle 'yssource/python.vim'
+        Bundle 'python_match.vim'
+        Bundle 'pythoncomplete'
+      endif
+    " }
 
-" Python
-"
-"Bundle 'klen/python-mode'
-"Bundle 'yssource/python.vim'
-"Bundle 'python_match.vim'
-"Bundle 'pythoncomplete'
-"
-" Javascript
-"
-Bundle 'elzr/vim-json'
-Bundle 'groenewege/vim-less'
-Bundle 'pangloss/vim-javascript'
-Bundle 'briancollins/vim-jst'
-Bundle 'kchmck/vim-coffee-script'
-"
-" Scala
-"
-"Bundle 'derekwyatt/vim-scala'
-"Bundle 'derekwyatt/vim-sbt'
-"Bundle 'xptemplate'
-"
-" Haskell
-"
-"Bundle 'travitch/hasksyn'
-"Bundle 'dag/vim2hs'
-"Bundle 'Twinside/vim-haskellConceal'
-"Bundle 'Twinside/vim-haskellFold'
-"Bundle 'lukerandall/haskellmode-vim'
-"Bundle 'eagletmt/neco-ghc'
-"Bundle 'eagletmt/ghcmod-vim'
-"Bundle 'Shougo/vimproc'
-"Bundle 'adinapoli/cumino'
-"Bundle 'bitc/vim-hdevtools'
-"
-" HTML
-"
-Bundle 'amirh/HTML-AutoCloseTag'
-Bundle 'hail2u/vim-css3-syntax'
-Bundle 'gorodinskiy/vim-coloresque'
-Bundle 'tpope/vim-haml'
-"
-" Ruby
-"
-Bundle 'tpope/vim-rails'
-let g:rubycomplete_buffer_loading = 1
-"let g:rubycomplete_classes_in_global = 1
-"let g:rubycomplete_rails = 1
-"
-" Puppet Related
-"
-Bundle 'rodjek/vim-puppet'
-"
-" Go Lang
-"
-"Bundle 'Blackrush/vim-gocode'
-"Bundle 'fatih/vim-go'
-"
-" Elixer
-"
-"Bundle 'elixir-lang/vim-elixir'
-"Bundle 'carlosgaldino/elixir-snippets'
-"Bundle 'mattreduce/vim-mix'
-"
-" Docker
-"
-Bundle 'blackcobra1973/Dockerfile.vim'
-"
-" Asciidoc
-"
-Bundle 'blackcobra1973/asciidoc-vim'
-"
-" Misc
-"
-Bundle 'wting/rust.vim'
-Bundle 'tpope/vim-markdown'
-Bundle 'spf13/vim-preview'
-Bundle 'tpope/vim-cucumber'
-"Bundle 'cespare/vim-toml'
-Bundle 'quentindecock/vim-cucumber-align-pipes'
-"Bundle 'saltstack/salt-vim'
+    " Javascript {
+      if count(g:kd_bundle_groups, 'javascript')
+        Bundle 'elzr/vim-json'
+        Bundle 'groenewege/vim-less'
+        Bundle 'pangloss/vim-javascript'
+        Bundle 'briancollins/vim-jst'
+        Bundle 'kchmck/vim-coffee-script'
+      endif
+    " }
 
+    " Scala {
+      if count(g:kd_bundle_groups, 'scala')
+        Bundle 'derekwyatt/vim-scala'
+        Bundle 'derekwyatt/vim-sbt'
+        Bundle 'xptemplate'
+      endif
+    " }
+
+    " Haskell {
+      if count(g:kd_bundle_groups, 'haskell')
+        Bundle 'travitch/hasksyn'
+        Bundle 'dag/vim2hs'
+        Bundle 'Twinside/vim-haskellConceal'
+        Bundle 'Twinside/vim-haskellFold'
+        Bundle 'lukerandall/haskellmode-vim'
+        Bundle 'eagletmt/neco-ghc'
+        Bundle 'eagletmt/ghcmod-vim'
+        Bundle 'Shougo/vimproc.vim'
+        Bundle 'adinapoli/cumino'
+        Bundle 'bitc/vim-hdevtools'
+      endif
+    " }
+
+    " HTML {
+      if count(g:kd_bundle_groups, 'html')
+        Bundle 'amirh/HTML-AutoCloseTag'
+        Bundle 'hail2u/vim-css3-syntax'
+        Bundle 'gorodinskiy/vim-coloresque'
+        Bundle 'tpope/vim-haml'
+      endif
+    " }
+
+    " Ruby {
+      if count(g:kd_bundle_groups, 'ruby')
+        Bundle 'tpope/vim-rails'
+        let g:rubycomplete_buffer_loading = 1
+        "let g:rubycomplete_classes_in_global = 1
+        "let g:rubycomplete_rails = 1
+      endif
+    " }
+
+    " Puppet {
+      if count(g:kd_bundle_groups, 'puppet')
+        Bundle 'rodjek/vim-puppet'
+      endif
+    " }
+
+    " Go Lang {
+      if count(g:kd_bundle_groups, 'go')
+        "Bundle 'Blackrush/vim-gocode'
+        Bundle 'fatih/vim-go'
+      endif
+    " }
+
+    " Elixir {
+      if count(g:kd_bundle_groups, 'elixir')
+        Bundle 'elixir-lang/vim-elixir'
+        Bundle 'carlosgaldino/elixir-snippets'
+        Bundle 'mattreduce/vim-mix'
+      endif
+    " }
+
+    " Docker {
+      if count(g:kd_bundle_groups, 'docker')
+        Bundle 'blackcobra1973/Dockerfile.vim'
+      endif
+    " }
+
+    " Asciidoc {
+      if count(g:kd_bundle_groups, 'asciidoc')
+        Bundle 'blackcobra1973/asciidoc-vim'
+      endif
+    " }
+
+    " Misc {
+      if count(g:kd_bundle_groups, 'misc')
+        Bundle 'rust-lang/rust.vim'
+        Bundle 'tpope/vim-markdown'
+        Bundle 'spf13/vim-preview'
+        Bundle 'tpope/vim-cucumber'
+        Bundle 'cespare/vim-toml'
+        Bundle 'quentindecock/vim-cucumber-align-pipes'
+        Bundle 'saltstack/salt-vim'
+      endif
+    " }
+
+  endif
+" }
+
+" Use local bundles config if available {
+  if filereadable(expand("~/.vimrc.bundles.local"))
+    source ~/.vimrc.bundles.local
+  endif
 " }
 
 if iCanHazVundle == 0
@@ -451,57 +483,145 @@ if iCanHazVundle == 0
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => General
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" General {
+  "set background=dark         " Assume a dark background
 
-" Sets how many lines of history VIM has to remember
-set history=1000
+  " Allow to trigger background
+  function! ToggleBG()
+    let s:tbg = &background
+    " Inversion
+    if s:tbg == "dark"
+      set background=light
+    else
+      set background=dark
+    endif
+  endfunction
+  noremap <leader>bg :call ToggleBG()<CR>
 
-" Allow backspacing over everything in insert mode
-set bs=2
+  " if !has('gui')
+    "set term=$TERM          " Make arrow and other keys work
+  " endif
+  filetype plugin indent on   " Automatically detect file types.
+  syntax on                   " Syntax highlighting
+  set mouse=a                 " Automatically enable mouse usage
+  set mousehide               " Hide the mouse cursor while typing
+  scriptencoding utf-8
 
-" Enable filetype plugins
-filetype plugin on
-"filetype indent on
-
-" Set to auto read when a file is changed from the outside
-set autoread
-
-" With a map leader it's possible to do extra key combinations
-" like <leader>w saves the current file
-let mapleader = ","
-let g:mapleader = ","
-
-" Fast saving
-nmap <leader>w :w!<cr>
-
-" :W sudo saves the file
-" (useful for handling the permission-denied error)
-command W w !sudo tee % > /dev/null
-
-" Enable modeline (Vim settings in a file)
-set modeline
-
-" Hide the default mode text (e.g. -- INSERT -- below the statusline)
-set noshowmode
-
-" enable per-directory .vimrc files
-"set exrc
-"set secure
-
-if has('clipboard')
-  if has('unnamedplus')  " When possible use + register for copy-paste
-    set clipboard=unnamed,unnamedplus
-  else " On mac and Windows, use * register for copy-paste
-    set clipboard=unnamed
+  if has('clipboard')
+    if has('unnamedplus')  " When possible use + register for copy-paste
+      set clipboard=unnamed,unnamedplus
+    else         " On mac and Windows, use * register for copy-paste
+      set clipboard=unnamed
+    endif
   endif
-endif
 
-" Automatically enable mouse usage
-"set mouse=a
-" Hide the mouse cursor while typing
-"set mousehide
+  " Most prefer to automatically switch to the current file directory when
+  " a new buffer is opened; to prevent this behavior, add the following to
+  " your .vimrc.before.local file:
+  "   let g:kd_no_autochdir = 1
+  if !exists('g:kd_no_autochdir')
+    autocmd BufEnter * if bufname("") !~ "^\[A-Za-z0-9\]*://" | lcd %:p:h | endif
+    " Always switch to the current file directory
+  endif
 
-" Set encoding to UTF8
-scriptencoding utf-8
+  "set autowrite                       " Automatically write a file when leaving a modified buffer
+  set shortmess+=filmnrxoOtT          " Abbrev. of messages (avoids 'hit enter')
+  set viewoptions=folds,options,cursor,unix,slash " Better Unix / Windows compatibility
+  set virtualedit=onemore             " Allow for cursor beyond last character
+  set history=1000                    " Store a ton of history (default is 20)
+  set spell                           " Spell checking on
+  set hidden                          " Allow buffer switching without saving
+  set iskeyword-=.                    " '.' is an end of word designator
+  set iskeyword-=#                    " '#' is an end of word designator
+  set iskeyword-=-                    " '-' is an end of word designator
+
+  " Instead of reverting the cursor to the last position in the buffer, we
+  " set it to the first line when editing a git commit message
+  au FileType gitcommit au! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
+
+  " http://vim.wikia.com/wiki/Restore_cursor_to_file_position_in_previous_editing_session
+  " Restore cursor to file position in previous editing session
+  " To disable this, add the following to your .vimrc.before.local file:
+  "   let g:kd_no_restore_cursor = 1
+  if !exists('g:kd_no_restore_cursor')
+    function! ResCur()
+      if line("'\""') <= line("$")
+        silent! normal! g`"
+        return 1
+      endif
+    endfunction
+
+    augroup resCur
+      autocmd!
+      autocmd BufWinEnter * call ResCur()
+    augroup END
+  endif
+
+
+  " Setting up the directories {
+
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " => Files, backups and undo
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " Turn backup off, since most stuff is in SVN, git et.c anyway...
+    set nobackup
+    set nowb
+    set noswapfile
+    "set backup                  " Backups are nice ...
+
+    if has('persistent_undo')
+      set undofile                " So is persistent undo ...
+      set undolevels=1000         " Maximum number of changes that can be undone
+      set undoreload=10000        " Maximum number lines to save for undo on a buffer reload
+    endif
+
+    " To disable views add the following to your .vimrc.before.local file:
+    "   let g:kd_no_views = 1
+    if !exists('g:kd_no_views')
+      " Add exclusions to mkview and loadview
+      " eg: *.*, svn-commit.tmp
+      let g:skipview_files = [
+        \ '\[example pattern\]'
+        \ ]
+    endif
+  " }
+
+  " Old variables set by KD {
+    " Allow backspacing over everything in insert mode
+    set bs=2
+
+    " Enable filetype plugins
+    "filetype plugin on
+    "filetype indent on
+
+    " Set to auto read when a file is changed from the outside
+    set autoread
+
+    " With a map leader it's possible to do extra key combinations
+    " like <leader>w saves the current file
+    let mapleader = ","
+    let g:mapleader = ","
+
+    " Fast saving
+    nmap <leader>w :w!<cr>
+
+    " :W sudo saves the file
+    " (useful for handling the permission-denied error)
+    command W w !sudo tee % > /dev/null
+
+    " Enable modeline (Vim settings in a file)
+    set modeline
+
+    " Hide the default mode text (e.g. -- INSERT -- below the statusline)
+    set noshowmode
+
+    " enable per-directory .vimrc files
+    "set exrc
+    "set secure
+  " }
+
+" }
+
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => VIM user interface
@@ -533,7 +653,7 @@ set ruler
 set cmdheight=2
 
 " A buffer becomes hidden when it is abandoned
-set hid
+"set hid
 
 " Configure backspace so it acts as it should act
 set backspace=eol,start,indent
@@ -589,21 +709,19 @@ set showfulltag     " Auto-complete things?
 " => Colors and Fonts
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Enable syntax highlighting
-syntax enable
+"syntax enable
 
 " Switch syntax highlighting on, when the terminal has colors
 " Also switch on highlighting the last used search pattern.
-if &t_Co > 2 || has("gui_running")
-    syntax on
-    set hlsearch
-endif
+"if &t_Co > 2 || has("gui_running")
+"    syntax on
+"    set hlsearch
+"endif
 
 "try
 "    colorscheme desert
 "catch
 "endtry
-
-set background=dark
 
 " Solarized Colorscheme
 "colorscheme solarized
@@ -638,13 +756,6 @@ set ffs=unix,dos,mac
 " Misc
 highlight FoldColumn ctermfg=darkyellow ctermbg=darkgrey
 
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Files, backups and undo
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Turn backup off, since most stuff is in SVN, git et.c anyway...
-set nobackup
-set nowb
-set noswapfile
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Text, tab and indent related
@@ -1156,7 +1267,6 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => GUI related
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"set background=dark
 
 "colorscheme peaksea
 
