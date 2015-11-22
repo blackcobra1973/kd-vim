@@ -1,0 +1,6 @@
+.DS_Store
+*.pyc
+*._*
+.vim/
+.vimrc
+.vimrc.*
