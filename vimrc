@@ -635,7 +635,7 @@ if iCanHazVundle == 0
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Vim UI {
 
-  if !exists('g:override_spf13_bundles') && filereadable(expand("~/.vim/bundle/vim-colors-solarized/colors/solarized.vim"))
+  if !exists('g:override_kd_bundles') && filereadable(expand("~/.vim/bundle/vim-colors-solarized/colors/solarized.vim"))
     let g:solarized_termcolors=256
     let g:solarized_termtrans=1
     let g:solarized_contrast="normal"
@@ -675,7 +675,7 @@ if iCanHazVundle == 0
     set statusline=%<%f\                     " Filename
     set statusline+=%w%h%m%r                 " Options
     set statusline+=%{SyntasticStatuslineFlag()}  " Syntastic
-    if !exists('g:override_spf13_bundles')
+    if !exists('g:override_kd_bundles')
       set statusline+=%{fugitive#statusline()} " Git Hotness
     endif
     set statusline+=\ [%{&ff}/%Y]            " Filetype
@@ -763,8 +763,8 @@ if iCanHazVundle == 0
   " Remove trailing whitespaces and ^M chars
   " To disable the stripping of whitespace, add the following to your
   " .vimrc.before.local file:
-  "   let g:spf13_keep_trailing_whitespace = 1
-  autocmd FileType c,cpp,java,go,php,javascript,puppet,python,rust,twig,xml,yml,perl,sql autocmd BufWritePre <buffer> if !exists('g:spf13_keep_trailing_whitespace') | call StripTrailingWhitespace() | endif
+  "   let g:kd_keep_trailing_whitespace = 1
+  autocmd FileType c,cpp,java,go,php,javascript,puppet,python,rust,twig,xml,yml,perl,sql autocmd BufWritePre <buffer> if !exists('g:kd_keep_trailing_whitespace') | call StripTrailingWhitespace() | endif
   "autocmd FileType go autocmd BufWritePre <buffer> Fmt
   autocmd BufNewFile,BufRead *.html.twig set filetype=html.twig
   autocmd FileType haskell,puppet,ruby,yml setlocal expandtab shiftwidth=2 softtabstop=2
@@ -796,40 +796,40 @@ if iCanHazVundle == 0
     " The default leader is '\', but many people prefer ',' as it's in a standard
     " location. To override this behavior and set it back to '\' (or any other
     " character) add the following to your .vimrc.before.local file:
-    "   let g:spf13_leader='\'
-    if !exists('g:spf13_leader')
+    "   let g:kd_leader='\'
+    if !exists('g:kd_leader')
         let mapleader = ','
     else
-        let mapleader=g:spf13_leader
+        let mapleader=g:kd_leader
     endif
-    if !exists('g:spf13_localleader')
+    if !exists('g:kd_localleader')
         let maplocalleader = '_'
     else
-        let maplocalleader=g:spf13_localleader
+        let maplocalleader=g:kd_localleader
     endif
 
-    " The default mappings for editing and applying the spf13 configuration
+    " The default mappings for editing and applying the kd configuration
     " are <leader>ev and <leader>sv respectively. Change them to your preference
     " by adding the following to your .vimrc.before.local file:
-    "   let g:spf13_edit_config_mapping='<leader>ec'
-    "   let g:spf13_apply_config_mapping='<leader>sc'
-    if !exists('g:spf13_edit_config_mapping')
-        let s:spf13_edit_config_mapping = '<leader>ev'
+    "   let g:kd_edit_config_mapping='<leader>ec'
+    "   let g:kd_apply_config_mapping='<leader>sc'
+    if !exists('g:kd_edit_config_mapping')
+        let s:kd_edit_config_mapping = '<leader>ev'
     else
-        let s:spf13_edit_config_mapping = g:spf13_edit_config_mapping
+        let s:kd_edit_config_mapping = g:kd_edit_config_mapping
     endif
-    if !exists('g:spf13_apply_config_mapping')
-        let s:spf13_apply_config_mapping = '<leader>sv'
+    if !exists('g:kd_apply_config_mapping')
+        let s:kd_apply_config_mapping = '<leader>sv'
     else
-        let s:spf13_apply_config_mapping = g:spf13_apply_config_mapping
+        let s:kd_apply_config_mapping = g:kd_apply_config_mapping
     endif
 
     " Easier moving in tabs and windows
     " The lines conflict with the default digraph mapping of <C-K>
     " If you prefer that functionality, add the following to your
     " .vimrc.before.local file:
-    "   let g:spf13_no_easyWindows = 1
-    if !exists('g:spf13_no_easyWindows')
+    "   let g:kd_no_easyWindows = 1
+    if !exists('g:kd_no_easyWindows')
         map <C-J> <C-W>j<C-W>_
         map <C-K> <C-W>k<C-W>_
         map <C-L> <C-W>l<C-W>_
@@ -844,8 +844,8 @@ if iCanHazVundle == 0
     " Default vim behaviour is to act relative to text line in both cases
     " If you prefer the default behaviour, add the following to your
     " .vimrc.before.local file:
-    "   let g:spf13_no_wrapRelMotion = 1
-    if !exists('g:spf13_no_wrapRelMotion')
+    "   let g:kd_no_wrapRelMotion = 1
+    if !exists('g:kd_no_wrapRelMotion')
         " Same for 0, home, end, etc
         function! WrapRelativeMotion(key, ...)
             let vis_sel=""
@@ -882,14 +882,14 @@ if iCanHazVundle == 0
     " bottom of the screen
     " If you prefer that functionality, add the following to your
     " .vimrc.before.local file:
-    "   let g:spf13_no_fastTabs = 1
-    if !exists('g:spf13_no_fastTabs')
+    "   let g:kd_no_fastTabs = 1
+    if !exists('g:kd_no_fastTabs')
         map <S-H> gT
         map <S-L> gt
     endif
 
     " Stupid shift key fixes
-    if !exists('g:spf13_no_keyfixes')
+    if !exists('g:kd_no_keyfixes')
         if has("user_commands")
             command! -bang -nargs=* -complete=file E e<bang> <args>
             command! -bang -nargs=* -complete=file W w<bang> <args>
@@ -923,8 +923,8 @@ if iCanHazVundle == 0
     " Most prefer to toggle search highlighting rather than clear the current
     " search results. To clear search highlighting rather than toggle it on
     " and off, add the following to your .vimrc.before.local file:
-    "   let g:spf13_clear_search_highlight = 1
-    if exists('g:spf13_clear_search_highlight')
+    "   let g:kd_clear_search_highlight = 1
+    if exists('g:kd_clear_search_highlight')
         nmap <silent> <leader>/ :nohlsearch<CR>
     else
         nmap <silent> <leader>/ :set invhlsearch<CR>
@@ -982,7 +982,7 @@ if iCanHazVundle == 0
 " Plugins {
 
     " GoLang {
-        if count(g:spf13_bundle_groups, 'go')
+        if count(g:kd_bundle_groups, 'go')
             let g:go_highlight_functions = 1
             let g:go_highlight_methods = 1
             let g:go_highlight_structs = 1
@@ -1004,7 +1004,7 @@ if iCanHazVundle == 0
         " }
 
     " TextObj Sentence {
-        if count(g:spf13_bundle_groups, 'writing')
+        if count(g:kd_bundle_groups, 'writing')
             augroup textobj_sentence
               autocmd!
               autocmd FileType markdown call textobj#sentence#init()
@@ -1015,7 +1015,7 @@ if iCanHazVundle == 0
     " }
 
     " TextObj Quote {
-        if count(g:spf13_bundle_groups, 'writing')
+        if count(g:kd_bundle_groups, 'writing')
             augroup textobj_quote
                 autocmd!
                 autocmd FileType markdown call textobj#quote#init()
@@ -1043,8 +1043,8 @@ if iCanHazVundle == 0
 
     " OmniComplete {
         " To disable omni complete, add the following to your .vimrc.before.local file:
-        "   let g:spf13_no_omni_complete = 1
-        if !exists('g:spf13_no_omni_complete')
+        "   let g:kd_no_omni_complete = 1
+        if !exists('g:kd_no_omni_complete')
             if has("autocmd") && exists("+omnifunc")
                 autocmd Filetype *
                     \if &omnifunc == "" |
@@ -1058,7 +1058,7 @@ if iCanHazVundle == 0
 
             " Some convenient mappings
             "inoremap <expr> <Esc>      pumvisible() ? "\<C-e>" : "\<Esc>"
-            if exists('g:spf13_map_cr_omni_complete')
+            if exists('g:kd_map_cr_omni_complete')
                 inoremap <expr> <CR>     pumvisible() ? "\<C-y>" : "\<CR>"
             endif
             inoremap <expr> <Down>     pumvisible() ? "\<C-n>" : "\<Down>"
@@ -1232,7 +1232,7 @@ if iCanHazVundle == 0
     "}
 
     " YouCompleteMe {
-        if count(g:spf13_bundle_groups, 'youcompleteme')
+        if count(g:kd_bundle_groups, 'youcompleteme')
             let g:acp_enableAtStartup = 0
 
             " enable completion from tags
@@ -1260,7 +1260,7 @@ if iCanHazVundle == 0
             endif
 
             " For snippet_complete marker.
-            if !exists("g:spf13_no_conceal")
+            if !exists("g:kd_no_conceal")
                 if has('conceal')
                     set conceallevel=2 concealcursor=i
                 endif
@@ -1274,7 +1274,7 @@ if iCanHazVundle == 0
     " }
 
     " neocomplete {
-        if count(g:spf13_bundle_groups, 'neocomplete')
+        if count(g:kd_bundle_groups, 'neocomplete')
             let g:acp_enableAtStartup = 0
             let g:neocomplete#enable_at_startup = 1
             let g:neocomplete#enable_smart_case = 1
@@ -1298,11 +1298,11 @@ if iCanHazVundle == 0
 
             " Plugin key-mappings {
                 " These two lines conflict with the default digraph mapping of <C-K>
-                if !exists('g:spf13_no_neosnippet_expand')
+                if !exists('g:kd_no_neosnippet_expand')
                     imap <C-k> <Plug>(neosnippet_expand_or_jump)
                     smap <C-k> <Plug>(neosnippet_expand_or_jump)
                 endif
-                if exists('g:spf13_noninvasive_completion')
+                if exists('g:kd_noninvasive_completion')
                     inoremap <CR> <CR>
                     " <ESC> takes you out of insert mode
                     inoremap <expr> <Esc>   pumvisible() ? "\<C-y>\<Esc>" : "\<Esc>"
@@ -1389,7 +1389,7 @@ if iCanHazVundle == 0
     " }
 
     " neocomplcache {
-        elseif count(g:spf13_bundle_groups, 'neocomplcache')
+        elseif count(g:kd_bundle_groups, 'neocomplcache')
             let g:acp_enableAtStartup = 0
             let g:neocomplcache_enable_at_startup = 1
             let g:neocomplcache_enable_camel_case_completion = 1
@@ -1416,7 +1416,7 @@ if iCanHazVundle == 0
                 " These two lines conflict with the default digraph mapping of <C-K>
                 imap <C-k> <Plug>(neosnippet_expand_or_jump)
                 smap <C-k> <Plug>(neosnippet_expand_or_jump)
-                if exists('g:spf13_noninvasive_completion')
+                if exists('g:kd_noninvasive_completion')
                     inoremap <CR> <CR>
                     " <ESC> takes you out of insert mode
                     inoremap <expr> <Esc>   pumvisible() ? "\<C-y>\<Esc>" : "\<Esc>"
@@ -1491,8 +1491,8 @@ if iCanHazVundle == 0
 
     " Normal Vim omni-completion {
     " To disable omni complete, add the following to your .vimrc.before.local file:
-    "   let g:spf13_no_omni_complete = 1
-        elseif !exists('g:spf13_no_omni_complete')
+    "   let g:kd_no_omni_complete = 1
+        elseif !exists('g:kd_no_omni_complete')
             " Enable omni-completion.
             autocmd FileType css setlocal omnifunc=csscomplete#CompleteCSS
             autocmd FileType html,markdown setlocal omnifunc=htmlcomplete#CompleteTags
@@ -1505,8 +1505,8 @@ if iCanHazVundle == 0
     " }
 
     " Snippets {
-        if count(g:spf13_bundle_groups, 'neocomplcache') ||
-                    \ count(g:spf13_bundle_groups, 'neocomplete')
+        if count(g:kd_bundle_groups, 'neocomplcache') ||
+                    \ count(g:kd_bundle_groups, 'neocomplete')
 
             " Use honza's snippets.
             let g:neosnippet#snippets_directory='~/.vim/bundle/vim-snippets/snippets'
@@ -1515,7 +1515,7 @@ if iCanHazVundle == 0
             let g:neosnippet#enable_snipmate_compatibility = 1
 
             " For snippet_complete marker.
-            if !exists("g:spf13_no_conceal")
+            if !exists("g:kd_no_conceal")
                 if has('conceal')
                     set conceallevel=2 concealcursor=i
                 endif
@@ -1664,7 +1664,7 @@ if iCanHazVundle == 0
     if has('gui_running')
         set guioptions-=T           " Remove the toolbar
         set lines=40                " 40 lines of text instead of 24
-        if !exists("g:spf13_no_big_font")
+        if !exists("g:kd_no_big_font")
             if LINUX() && has("gui_running")
                 set guifont=Andale\ Mono\ Regular\ 12,Menlo\ Regular\ 11,Consolas\ Regular\ 12,Courier\ New\ Regular\ 14
             elseif OSX() && has("gui_running")
@@ -1709,10 +1709,10 @@ if iCanHazVundle == 0
         " To specify a different directory in which to place the vimbackup,
         " vimviews, vimundo, and vimswap files/directories, add the following to
         " your .vimrc.before.local file:
-        "   let g:spf13_consolidated_directory = <full path to desired directory>
-        "   eg: let g:spf13_consolidated_directory = $HOME . '/.vim/'
-        if exists('g:spf13_consolidated_directory')
-            let common_dir = g:spf13_consolidated_directory . prefix
+        "   let g:kd_consolidated_directory = <full path to desired directory>
+        "   eg: let g:kd_consolidated_directory = $HOME . '/.vim/'
+        if exists('g:kd_consolidated_directory')
+            let common_dir = g:kd_consolidated_directory . prefix
         else
             let common_dir = parent . '/.' . prefix
         endif
