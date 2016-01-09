@@ -552,10 +552,10 @@ if iCanHazVundle == 0
   endif
 
   " Return to last edit position when opening files (You want this!)
-  autocmd BufReadPost *
-    \ if line("'\""') > 0 && line("'\""') <= line("$") |
-    \   exe "normal! g`\"" |
-    \ endif`
+  " autocmd BufReadPost *
+  "  \ if line("'\""') > 0 && line("'\""') <= line("$") |
+  "  \   exe "normal! g`\"" |
+  "  \ endif`
 
   " Automatically enable mouse usage
   "set mouse=a
