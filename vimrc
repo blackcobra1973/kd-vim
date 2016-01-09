@@ -504,23 +504,6 @@ if iCanHazVundle == 0
   endfunction
   noremap <leader>bg :call ToggleBG()<CR>
 
-  " if !has('gui')
-    "set term=$TERM          " Make arrow and other keys work
-  " endif
-  filetype plugin indent on   " Automatically detect file types.
-  syntax on                   " Syntax highlighting
-  set mouse=a                 " Automatically enable mouse usage
-  set mousehide               " Hide the mouse cursor while typing
-  scriptencoding utf-8
-
-  if has('clipboard')
-    if has('unnamedplus')  " When possible use + register for copy-paste
-      set clipboard=unnamed,unnamedplus
-    else         " On mac and Windows, use * register for copy-paste
-      set clipboard=unnamed
-    endif
-  endif
-
   " Most prefer to automatically switch to the current file directory when
   " a new buffer is opened; to prevent this behavior, add the following to
   " your .vimrc.before.local file:
@@ -531,38 +514,45 @@ if iCanHazVundle == 0
   endif
 
   "set autowrite                       " Automatically write a file when leaving a modified buffer
-  set shortmess+=filmnrxoOtT          " Abbrev. of messages (avoids 'hit enter')
-  set viewoptions=folds,options,cursor,unix,slash " Better Unix / Windows compatibility
-  set virtualedit=onemore             " Allow for cursor beyond last character
-  set history=1000                    " Store a ton of history (default is 20)
-  set spell                           " Spell checking on
-  set hidden                          " Allow buffer switching without saving
-  set iskeyword-=.                    " '.' is an end of word designator
-  set iskeyword-=#                    " '#' is an end of word designator
-  set iskeyword-=-                    " '-' is an end of word designator
+  "set shortmess+=filmnrxoOtT          " Abbrev. of messages (avoids 'hit enter')
+  "set viewoptions=folds,options,cursor,unix,slash " Better Unix / Windows compatibility
+  "set virtualedit=onemore             " Allow for cursor beyond last character
+  "set spell                           " Spell checking on
+  "set hidden                          " Allow buffer switching without saving
+  "set iskeyword-=.                    " '.' is an end of word designator
+  "set iskeyword-=#                    " '#' is an end of word designator
+  "set iskeyword-=-                    " '-' is an end of word designator
 
   " Instead of reverting the cursor to the last position in the buffer, we
   " set it to the first line when editing a git commit message
   au FileType gitcommit au! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
 
-  " http://vim.wikia.com/wiki/Restore_cursor_to_file_position_in_previous_editing_session
-  " Restore cursor to file position in previous editing session
-  " To disable this, add the following to your .vimrc.before.local file:
-  "   let g:kd_no_restore_cursor = 1
-"  if !exists('g:kd_no_restore_cursor')
-"    function! ResCur()
-"      if line("'\""') <= line("$")
-"        silent! normal! g`"
-"        return 1
-"      endif
-"    endfunction
+  set history=1000                      " Sets how many lines of history VIM has to remember
+  set autoread                          " Set to auto read when a file is changed from the outside
 
-"    augroup resCur
-"      autocmd!
-"      autocmd BufWinEnter * call ResCur()
-"    augroup END
-"  endif
+  " Enable filetype plugins
+  filetype plugin on
+  "filetype indent on
 
+  " Set encoding to UTF8
+  scriptencoding utf-8
+
+  " enable per-directory .vimrc files
+  "set exrc
+  "set secure
+
+  if has('clipboard')
+    if has('unnamedplus')  " When possible use + register for copy-paste
+      set clipboard=unnamed,unnamedplus
+    else " On mac and Windows, use * register for copy-paste
+      set clipboard=unnamed
+    endif
+  endif
+
+  " Automatically enable mouse usage
+  "set mouse=a
+  " Hide the mouse cursor while typing
+  "set mousehide
 
   " Setting up the directories {
 
@@ -591,43 +581,7 @@ if iCanHazVundle == 0
         \ ]
     endif
   " }
-
-  " Old variables set by KD {
-    " Allow backspacing over everything in insert mode
-    set bs=2
-
-    " Enable filetype plugins
-    "filetype plugin on
-    "filetype indent on
-
-    " Set to auto read when a file is changed from the outside
-    set autoread
-
-    " With a map leader it's possible to do extra key combinations
-    " like <leader>w saves the current file
-    let mapleader = ","
-    let g:mapleader = ","
-
-    " Fast saving
-    nmap <leader>w :w!<cr>
-
-    " :W sudo saves the file
-    " (useful for handling the permission-denied error)
-    command W w !sudo tee % > /dev/null
-
-    " Enable modeline (Vim settings in a file)
-    set modeline
-
-    " Hide the default mode text (e.g. -- INSERT -- below the statusline)
-    set noshowmode
-
-    " enable per-directory .vimrc files
-    "set exrc
-    "set secure
-  " }
-
 " }
-
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => VIM user interface
@@ -642,12 +596,13 @@ if iCanHazVundle == 0
     color solarized             " Load a colorscheme
   else
     let g:solarized_termcolors=256
-    colorscheme grb256
+    "colorscheme grb256
   endif
 
   set tabpagemax=15               " Only show 15 tabs
-  set showmode                    " Display the current mode
-
+  set modeline                    " Enable modeline (Vim settings in a file)
+  "set showmode                    " Display the current mode
+  set noshowmode                  " Hide the default mode text (e.g. -- INSERT -- below the statusline)
   set cursorline                  " Highlight current line
 
   highlight clear SignColumn      " SignColumn should match background
@@ -656,7 +611,7 @@ if iCanHazVundle == 0
 
   if has('cmdline_info')
     set ruler                   " Show the ruler
-    set rulerformat=%30(%=\:b%n%y%m%r%w\ %l,%c%V\ %P%) " A ruler on steroids
+    "set rulerformat=%30(%=\:b%n%y%m%r%w\ %l,%c%V\ %P%) " A ruler on steroids
     set showcmd                 " Show partial commands in status line and
                                 " Selected characters/lines in visual mode
   endif
@@ -685,9 +640,10 @@ if iCanHazVundle == 0
   "hi User1 term=inverse,bold cterm=inverse,bold ctermfg=red
 
   " Show (partial) command in status line.
-  set showcmd
+  "set showcmd
 
   set backspace=indent,eol,start  " Backspace for dummies
+  "set backspace=eol,start,indent  " Backspace for dummies
   set linespace=0                 " No extra spaces between rows
   set number                      " Line numbers on
   set showmatch                   " Show matching brackets/parenthesis
@@ -700,16 +656,17 @@ if iCanHazVundle == 0
   set wildmenu                    " Show list instead of just completing
   set wildmode=list:longest,full  " Command <Tab> completion, list matches, then longest common part, then all.
   set whichwrap=b,s,h,l,<,>,[,]   " Backspace and cursor keys wrap too
+  "set whichwrap+=<,>,h,l          " Backspace and cursor keys wrap too
   set scrolljump=5                " Lines to scroll when cursor leaves screen
   set scrolloff=3                 " Minimum lines to keep above and below cursor
   set foldenable                  " Auto fold code
   set list
   set listchars=tab:›\ ,trail:•,extends:#,nbsp:. " Highlight problematic whitespace
-
-  "set so=7                        " Set 7 lines to the cursor - when moving vertically using j/k
+  set bs=2                        " Allow backspacing over everything in insert mode
+  set so=7                        " Set 7 lines to the cursor - when moving vertically using j/k
   "set so=10                       " Set 10 lines to the cursor
   set cmdheight=2                 " Height of the command bar
-  "set hid                         " A buffer becomes hidden when it is abandoned
+  set hid                         " A buffer becomes hidden when it is abandoned
   set lazyredraw                  " Don't redraw while executing macros (good performance config)
   set magic                       " For regular expressions turn magic on
   set showfulltag                 " Auto-complete things?
@@ -719,6 +676,9 @@ if iCanHazVundle == 0
   set novisualbell
   set t_vb=
   set tm=500
+
+  " Enable syntax highlighting
+  syntax enable
 
   " Add a bit extra margin to the left
   "set foldcolumn=1
@@ -792,186 +752,194 @@ if iCanHazVundle == 0
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key (re)Mappings {
 
-    " The default leader is '\', but many people prefer ',' as it's in a standard
-    " location. To override this behavior and set it back to '\' (or any other
-    " character) add the following to your .vimrc.before.local file:
-    "   let g:kd_leader='\'
-    if !exists('g:kd_leader')
-        let mapleader = ','
-    else
-        let mapleader=g:kd_leader
-    endif
-    if !exists('g:kd_localleader')
-        let maplocalleader = '_'
-    else
-        let maplocalleader=g:kd_localleader
-    endif
+  " The default leader is '\', but many people prefer ',' as it's in a standard
+  " location. To override this behavior and set it back to '\' (or any other
+  " character) add the following to your .vimrc.before.local file:
+  "   let g:kd_leader='\'
+  if !exists('g:kd_leader')
+    let mapleader = ','
+    let g:mapleader = ","
+  else
+    let mapleader=g:kd_leader
+  endif
+  if !exists('g:kd_localleader')
+    let maplocalleader = '_'
+  else
+    let maplocalleader=g:kd_localleader
+  endif
 
-    " The default mappings for editing and applying the kd configuration
-    " are <leader>ev and <leader>sv respectively. Change them to your preference
-    " by adding the following to your .vimrc.before.local file:
-    "   let g:kd_edit_config_mapping='<leader>ec'
-    "   let g:kd_apply_config_mapping='<leader>sc'
-    if !exists('g:kd_edit_config_mapping')
-        let s:kd_edit_config_mapping = '<leader>ev'
-    else
-        let s:kd_edit_config_mapping = g:kd_edit_config_mapping
-    endif
-    if !exists('g:kd_apply_config_mapping')
-        let s:kd_apply_config_mapping = '<leader>sv'
-    else
-        let s:kd_apply_config_mapping = g:kd_apply_config_mapping
-    endif
+  " The default mappings for editing and applying the kd configuration
+  " are <leader>ev and <leader>sv respectively. Change them to your preference
+  " by adding the following to your .vimrc.before.local file:
+  "   let g:kd_edit_config_mapping='<leader>ec'
+  "   let g:kd_apply_config_mapping='<leader>sc'
+  if !exists('g:kd_edit_config_mapping')
+    let s:kd_edit_config_mapping = '<leader>ev'
+  else
+    let s:kd_edit_config_mapping = g:kd_edit_config_mapping
+  endif
+  if !exists('g:kd_apply_config_mapping')
+    let s:kd_apply_config_mapping = '<leader>sv'
+  else
+    let s:kd_apply_config_mapping = g:kd_apply_config_mapping
+  endif
 
-    " Easier moving in tabs and windows
-    " The lines conflict with the default digraph mapping of <C-K>
-    " If you prefer that functionality, add the following to your
-    " .vimrc.before.local file:
-    "   let g:kd_no_easyWindows = 1
-    if !exists('g:kd_no_easyWindows')
-        map <C-J> <C-W>j<C-W>_
-        map <C-K> <C-W>k<C-W>_
-        map <C-L> <C-W>l<C-W>_
-        map <C-H> <C-W>h<C-W>_
-    endif
-    " Wrapped lines goes down/up to next row, rather than next line in file.
-    noremap j gj
-    noremap k gk
+  " Easier moving in tabs and windows
+  " The lines conflict with the default digraph mapping of <C-K>
+  " If you prefer that functionality, add the following to your
+  " .vimrc.before.local file:
+  "   let g:kd_no_easyWindows = 1
+  if !exists('g:kd_no_easyWindows')
+    map <C-J> <C-W>j<C-W>_
+    map <C-K> <C-W>k<C-W>_
+    map <C-L> <C-W>l<C-W>_
+    map <C-H> <C-W>h<C-W>_
+  endif
+  " Wrapped lines goes down/up to next row, rather than next line in file.
+  noremap j gj
+  noremap k gk
 
-    " End/Start of line motion keys act relative to row/wrap width in the
-    " presence of `:set wrap`, and relative to line for `:set nowrap`.
-    " Default vim behaviour is to act relative to text line in both cases
-    " If you prefer the default behaviour, add the following to your
-    " .vimrc.before.local file:
-    "   let g:kd_no_wrapRelMotion = 1
-    if !exists('g:kd_no_wrapRelMotion')
-        " Same for 0, home, end, etc
-        function! WrapRelativeMotion(key, ...)
-            let vis_sel=""
-            if a:0
-                let vis_sel="gv"
-            endif
-            if &wrap
-                execute "normal!" vis_sel . "g" . a:key
-            else
-                execute "normal!" vis_sel . a:key
-            endif
-        endfunction
+  " End/Start of line motion keys act relative to row/wrap width in the
+  " presence of `:set wrap`, and relative to line for `:set nowrap`.
+  " Default vim behaviour is to act relative to text line in both cases
+  " If you prefer the default behaviour, add the following to your
+  " .vimrc.before.local file:
+  "   let g:kd_no_wrapRelMotion = 1
+  if !exists('g:kd_no_wrapRelMotion')
+    " Same for 0, home, end, etc
+    function! WrapRelativeMotion(key, ...)
+      let vis_sel=""
+      if a:0
+        let vis_sel="gv"
+      endif
+      if &wrap
+        execute "normal!" vis_sel . "g" . a:key
+      else
+        execute "normal!" vis_sel . a:key
+      endif
+    endfunction
 
-        " Map g* keys in Normal, Operator-pending, and Visual+select
-        noremap $ :call WrapRelativeMotion("$")<CR>
-        noremap <End> :call WrapRelativeMotion("$")<CR>
-        noremap 0 :call WrapRelativeMotion("0")<CR>
-        noremap <Home> :call WrapRelativeMotion("0")<CR>
-        noremap ^ :call WrapRelativeMotion("^")<CR>
-        " Overwrite the operator pending $/<End> mappings from above
-        " to force inclusive motion with :execute normal!
-        onoremap $ v:call WrapRelativeMotion("$")<CR>
-        onoremap <End> v:call WrapRelativeMotion("$")<CR>
-        " Overwrite the Visual+select mode mappings from above
-        " to ensure the correct vis_sel flag is passed to function
-        vnoremap $ :<C-U>call WrapRelativeMotion("$", 1)<CR>
-        vnoremap <End> :<C-U>call WrapRelativeMotion("$", 1)<CR>
-        vnoremap 0 :<C-U>call WrapRelativeMotion("0", 1)<CR>
-        vnoremap <Home> :<C-U>call WrapRelativeMotion("0", 1)<CR>
-        vnoremap ^ :<C-U>call WrapRelativeMotion("^", 1)<CR>
-    endif
+    " Map g* keys in Normal, Operator-pending, and Visual+select
+    noremap $ :call WrapRelativeMotion("$")<CR>
+    noremap <End> :call WrapRelativeMotion("$")<CR>
+    noremap 0 :call WrapRelativeMotion("0")<CR>
+    noremap <Home> :call WrapRelativeMotion("0")<CR>
+    noremap ^ :call WrapRelativeMotion("^")<CR>
+    " Overwrite the operator pending $/<End> mappings from above
+    " to force inclusive motion with :execute normal!
+    onoremap $ v:call WrapRelativeMotion("$")<CR>
+    onoremap <End> v:call WrapRelativeMotion("$")<CR>
+    " Overwrite the Visual+select mode mappings from above
+    " to ensure the correct vis_sel flag is passed to function
+    vnoremap $ :<C-U>call WrapRelativeMotion("$", 1)<CR>
+    vnoremap <End> :<C-U>call WrapRelativeMotion("$", 1)<CR>
+    vnoremap 0 :<C-U>call WrapRelativeMotion("0", 1)<CR>
+    vnoremap <Home> :<C-U>call WrapRelativeMotion("0", 1)<CR>
+    vnoremap ^ :<C-U>call WrapRelativeMotion("^", 1)<CR>
+  endif
 
-    " The following two lines conflict with moving to top and
-    " bottom of the screen
-    " If you prefer that functionality, add the following to your
-    " .vimrc.before.local file:
-    "   let g:kd_no_fastTabs = 1
-    if !exists('g:kd_no_fastTabs')
-        map <S-H> gT
-        map <S-L> gt
-    endif
+  " The following two lines conflict with moving to top and
+  " bottom of the screen
+  " If you prefer that functionality, add the following to your
+  " .vimrc.before.local file:
+  "   let g:kd_no_fastTabs = 1
+  if !exists('g:kd_no_fastTabs')
+    map <S-H> gT
+    map <S-L> gt
+  endif
 
-    " Stupid shift key fixes
-    if !exists('g:kd_no_keyfixes')
-        if has("user_commands")
-            command! -bang -nargs=* -complete=file E e<bang> <args>
-            command! -bang -nargs=* -complete=file W w<bang> <args>
-            command! -bang -nargs=* -complete=file Wq wq<bang> <args>
-            command! -bang -nargs=* -complete=file WQ wq<bang> <args>
-            command! -bang Wa wa<bang>
-            command! -bang WA wa<bang>
-            command! -bang Q q<bang>
-            command! -bang QA qa<bang>
-            command! -bang Qa qa<bang>
-        endif
-
-        cmap Tabe tabe
+  " Stupid shift key fixes
+  if !exists('g:kd_no_keyfixes')
+    if has("user_commands")
+      command! -bang -nargs=* -complete=file E e<bang> <args>
+      command! -bang -nargs=* -complete=file W w<bang> <args>
+      command! -bang -nargs=* -complete=file Wq wq<bang> <args>
+      command! -bang -nargs=* -complete=file WQ wq<bang> <args>
+      command! -bang Wa wa<bang>
+      command! -bang WA wa<bang>
+      command! -bang Q q<bang>
+      command! -bang QA qa<bang>
+      command! -bang Qa qa<bang>
     endif
 
-    " Yank from the cursor to the end of the line, to be consistent with C and D.
-    nnoremap Y y$
+    cmap Tabe tabe
+  endif
 
-    " Code folding options
-    nmap <leader>f0 :set foldlevel=0<CR>
-    nmap <leader>f1 :set foldlevel=1<CR>
-    nmap <leader>f2 :set foldlevel=2<CR>
-    nmap <leader>f3 :set foldlevel=3<CR>
-    nmap <leader>f4 :set foldlevel=4<CR>
-    nmap <leader>f5 :set foldlevel=5<CR>
-    nmap <leader>f6 :set foldlevel=6<CR>
-    nmap <leader>f7 :set foldlevel=7<CR>
-    nmap <leader>f8 :set foldlevel=8<CR>
-    nmap <leader>f9 :set foldlevel=9<CR>
+  " Yank from the cursor to the end of the line, to be consistent with C and D.
+  nnoremap Y y$
 
-    " Most prefer to toggle search highlighting rather than clear the current
-    " search results. To clear search highlighting rather than toggle it on
-    " and off, add the following to your .vimrc.before.local file:
-    "   let g:kd_clear_search_highlight = 1
-    if exists('g:kd_clear_search_highlight')
-        nmap <silent> <leader>/ :nohlsearch<CR>
-    else
-        nmap <silent> <leader>/ :set invhlsearch<CR>
-    endif
-    " Find merge conflict markers
-    map <leader>fc /\v^[<\|=>]{7}( .*\|$)<CR>
+  " Code folding options
+  nmap <leader>f0 :set foldlevel=0<CR>
+  nmap <leader>f1 :set foldlevel=1<CR>
+  nmap <leader>f2 :set foldlevel=2<CR>
+  nmap <leader>f3 :set foldlevel=3<CR>
+  nmap <leader>f4 :set foldlevel=4<CR>
+  nmap <leader>f5 :set foldlevel=5<CR>
+  nmap <leader>f6 :set foldlevel=6<CR>
+  nmap <leader>f7 :set foldlevel=7<CR>
+  nmap <leader>f8 :set foldlevel=8<CR>
+  nmap <leader>f9 :set foldlevel=9<CR>
 
-    " Shortcuts
-    " Change Working Directory to that of the current file
-    cmap cwd lcd %:p:h
-    cmap cd. lcd %:p:h
+  " Most prefer to toggle search highlighting rather than clear the current
+  " search results. To clear search highlighting rather than toggle it on
+  " and off, add the following to your .vimrc.before.local file:
+  "   let g:kd_clear_search_highlight = 1
+  if exists('g:kd_clear_search_highlight')
+    nmap <silent> <leader>/ :nohlsearch<CR>
+  else
+    nmap <silent> <leader>/ :set invhlsearch<CR>
+  endif
+  " Find merge conflict markers
+  map <leader>fc /\v^[<\|=>]{7}( .*\|$)<CR>
 
-    " Visual shifting (does not exit Visual mode)
-    vnoremap < <gv
-    vnoremap > >gv
+  " Shortcuts
+  " Change Working Directory to that of the current file
+  cmap cwd lcd %:p:h
+  cmap cd. lcd %:p:h
 
-    " Allow using the repeat operator with a visual selection (!)
-    " http://stackoverflow.com/a/8064607/127816
-    vnoremap . :normal .<CR>
+  " Visual shifting (does not exit Visual mode)
+  vnoremap < <gv
+  vnoremap > >gv
 
-    " For when you forget to sudo.. Really Write the file.
-    cmap w!! w !sudo tee % >/dev/null
+  " Allow using the repeat operator with a visual selection (!)
+  " http://stackoverflow.com/a/8064607/127816
+  vnoremap . :normal .<CR>
 
-    " Some helpers to edit mode
-    " http://vimcasts.org/e/14
-    cnoremap %% <C-R>=fnameescape(expand('%:h')).'/'<cr>
-    map <leader>ew :e %%
-    map <leader>es :sp %%
-    map <leader>ev :vsp %%
-    map <leader>et :tabe %%
+  " For when you forget to sudo.. Really Write the file.
+  cmap w!! w !sudo tee % >/dev/null
 
-    " Adjust viewports to the same size
-    map <Leader>= <C-w>=
+  " Some helpers to edit mode
+  " http://vimcasts.org/e/14
+  cnoremap %% <C-R>=fnameescape(expand('%:h')).'/'<cr>
+  map <leader>ew :e %%
+  map <leader>es :sp %%
+  map <leader>ev :vsp %%
+  map <leader>et :tabe %%
 
-    " Map <Leader>ff to display all lines with keyword under cursor
-    " and ask which one to jump to
-    nmap <Leader>ff [I:let nr = input("Which one: ")<Bar>exe "normal " . nr ."[\t"<CR>
+  " Adjust viewports to the same size
+  map <Leader>= <C-w>=
 
-    " Easier horizontal scrolling
-    map zl zL
-    map zh zH
+  " Map <Leader>ff to display all lines with keyword under cursor
+  " and ask which one to jump to
+  nmap <Leader>ff [I:let nr = input("Which one: ")<Bar>exe "normal " . nr ."[\t"<CR>
 
-    " Easier formatting
-    nnoremap <silent> <leader>q gwip
+  " Easier horizontal scrolling
+  map zl zL
+  map zh zH
 
-    " FIXME: Revert this f70be548
-    " fullscreen mode for GVIM and Terminal, need 'wmctrl' in you PATH
-    map <silent> <F11> :call system("wmctrl -ir " . v:windowid . " -b toggle,fullscreen")<CR>
+  " Easier formatting
+  nnoremap <silent> <leader>q gwip
+
+  " FIXME: Revert this f70be548
+  " fullscreen mode for GVIM and Terminal, need 'wmctrl' in you PATH
+  map <silent> <F11> :call system("wmctrl -ir " . v:windowid . " -b toggle,fullscreen")<CR>
+
+  " Fast saving
+  nmap <leader>w :w!<cr>
+
+  " :W sudo saves the file
+  " (useful for handling the permission-denied error)
+  command W w !sudo tee % > /dev/null
 
 " }
 
