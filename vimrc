@@ -606,8 +606,9 @@ if iCanHazVundle == 0
     color solarized             " Load a colorscheme
   else
     let g:solarized_termcolors=256
-    colorscheme grb256
   endif
+
+  colorscheme grb256
 
   set tabpagemax=15               " Only show 15 tabs
   set modeline                    " Enable modeline (Vim settings in a file)
