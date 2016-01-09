@@ -1,4 +1,3 @@
-" Modeline and Notes {
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Maintainer:
 "       Kurt Dillen
@@ -33,7 +32,6 @@
 "     -> Fast editing and reloading of vimrc configs
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Vim Environment
@@ -239,31 +237,33 @@
   " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if !exists('g:kd_bundle_groups')
-      " Original spf13 default bundle set
-      "let g:kd_bundle_groups=['general', 'writing', 'neocomplete', 'programming', 'php', 'ruby', 'python', 'javascript', 'html', 'misc',]
-      " KD default bundle set
       let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'puppet', 'docker', 'javascript', 'html', 'misc',]
 
   endif
 
   " To override all the included bundles, add the following to your
-  " .vimrc.bundles.local file:
+  " .vimrc.before.local file:
   "   let g:override_kd_bundles = 1
   if !exists("g:override_kd_bundles")
 
     " General {
       if count(g:kd_bundle_groups, 'general')
         Bundle 'scrooloose/nerdtree'
-        Bundle 'blackcobra1973/kd-vim-colors'
         Bundle 'tpope/vim-surround'
         Bundle 'tpope/vim-repeat'
-        Bundle 'rhysd/conflict-marker.vim'
-        Bundle 'jiangmiao/auto-pairs'
+        Bundle 'spf13/vim-autoclose'
         Bundle 'ctrlpvim/ctrlp.vim'
         Bundle 'tacahiroy/ctrlp-funky'
         Bundle 'terryma/vim-multiple-cursors'
-        Bundle 'vim-scripts/sessionman.vim'
-        Bundle 'matchit.zip'
+        Bundle 'easymotion/vim-easymotion'
+        if has("python") || has("python3")
+          Bundle 'sjl/gundo.vim'
+        else
+          Bundle 'mbbill/undotree'
+        endif
+        Bundle 'nathanaelkane/vim-indent-guides'
+        Bundle 'mhinz/vim-signify'
+        Bundle 'bronson/vim-trailing-whitespace'
         if (has("python") || has("python3")) && exists('g:kd_use_powerline') && !exists('g:kd_use_old_powerline')
           Bundle 'Lokaltog/powerline', {'rtp':'/powerline/bindings/vim'}
         elseif exists('g:kd_use_powerline') && exists('g:kd_use_old_powerline')
@@ -272,28 +272,27 @@
           Bundle 'bling/vim-airline'
         endif
         Bundle 'powerline/fonts'
-        Bundle 'bling/vim-bufferline'
-        Bundle 'easymotion/vim-easymotion'
+        " KD Extra general bundles
+        Bundle 'blackcobra1973/kd-vim-colors'
+      endif
+    " }
+
+    " Extra General {
+      if count(g:kd_bundle_groups, 'extra')
         Bundle 'jistr/vim-nerdtree-tabs'
-        Bundle 'flazz/vim-colorschemes'
-        if has("python") || has("python3")
-          Bundle 'sjl/gundo.vim'
-        else
-          Bundle 'mbbill/undotree'
-        endif
-        Bundle 'nathanaelkane/vim-indent-guides'
+        Bundle 'rhysd/conflict-marker.vim'
+        Bundle 'jiangmiao/auto-pairs'
+        Bundle 'vim-scripts/sessionman.vim'
+        Bundle 'matchit.zip'
+        Bundle 'bling/vim-bufferline'
         if !exists('g:kd_no_views')
           Bundle 'vim-scripts/restore_view.vim'
         endif
-        Bundle 'mhinz/vim-signify'
         Bundle 'tpope/vim-abolish.git'
         Bundle 'osyo-manga/vim-over'
         Bundle 'kana/vim-textobj-user'
         Bundle 'kana/vim-textobj-indent'
         Bundle 'gcmt/wildfire.vim'
-        " KD Extra general bundles
-        Bundle 'spf13/vim-autoclose'
-        Bundle 'bronson/vim-trailing-whitespace'
       endif
     " }
 
@@ -491,7 +490,7 @@ if iCanHazVundle == 0
 " => General
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " General {
-  "set background=dark         " Assume a dark background
+  set background=dark         " Assume a dark background
 
   " Allow to trigger background
   function! ToggleBG()
