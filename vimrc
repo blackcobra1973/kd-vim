@@ -24,7 +24,6 @@
 "     -> Automatically chmod +x for files starting with #! .../bin/
 "     -> Automatically compile less files
 "     -> Show what syntax is used
-"     -> vimgrep searching and cope displaying
 "     -> Spell checking
 "     -> Misc
 "     -> Helper functions
@@ -964,6 +963,12 @@ if iCanHazVundle == 0
   vnoremap <silent> * :call VisualSelection('f', '')<CR>
   vnoremap <silent> # :call VisualSelection('b', '')<CR>
 
+  """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+  " => Show what syntax is used
+  """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+  map <F10> :echo "hi<" . synIDattr(synID(line("."),col("."),1),"name") . '> trans<'
+    \ . synIDattr(synID(line("."),col("."),0),"name") . "> lo<"
+    \ . synIDattr(synIDtrans(synID(line("."),col("."),1)),"name") . ">"<CR>
 " }
 
 """"""""""""""""""""""""""""""
@@ -1801,7 +1806,8 @@ if iCanHazVundle == 0
             endif
         endfor
     endfunction
-    call InitializeDirectories()
+
+    "call InitializeDirectories()
     " }
 
     " Initialize NERDTree as needed {
@@ -1857,6 +1863,100 @@ if iCanHazVundle == 0
 
     function! s:ExpandFilenameAndExecute(command, file)
         execute a:command . " " . expand(a:file, ":p")
+    endfunction
+
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " => Automatically chmod +x for files starting with #! .../bin/
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    function! s:AutoChmodX()
+      if getline(1) =~ "^#!"
+        execute "silent !chmod +x " . shellescape(expand('%:h'), 1)
+      endif
+    endfunction
+
+    au BufWritePost * call s:AutoChmodX()
+
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " => Automatically compile less files
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    function! s:compile_less()
+      let l:less = expand('%:p')
+      let l:css = substitute(l:less, "\\<less\\>", "css", "g")
+      let l:outfile = tempname()
+      let l:errorfile = "/dev/null"
+      let l:cmd = printf("!lessc --no-color %s > %s 2> %s",
+        \ shellescape(l:less, 1),
+        \ shellescape(l:outfile, 1),
+        \ shellescape(l:errorfile, 1)
+        \)
+      silent execute l:cmd
+
+      if v:shell_error
+        call delete(l:outfile)
+      else
+        call rename(l:outfile, l:css)
+      endif
+    endfunction
+
+    au BufWritePost *.less call s:compile_less()
+
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " => Helper functions
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    function! CmdLine(str)
+      exe "menu Foo.Bar :" . a:str
+      emenu Foo.Bar
+      unmenu Foo
+    endfunction
+
+    function! VisualSelection(direction, extra_filter) range
+      let l:saved_reg = @"
+      execute "normal! vgvy"
+
+      let l:pattern = escape(@", '\\/.*$^~[]')
+      let l:pattern = substitute(l:pattern, "\n$", "", "")
+
+      if a:direction == 'b'
+        execute "normal ?" . l:pattern . "^M"
+      elseif a:direction == 'gv'
+        call CmdLine("vimgrep " . '/'. l:pattern . '/' . ' **/*.' . a:extra_filter)
+      elseif a:direction == 'replace'
+        call CmdLine("%s" . '/'. l:pattern . '/')
+      elseif a:direction == 'f'
+        execute "normal /" . l:pattern . "^M"
+      endif
+
+      let @/ = l:pattern
+      let @" = l:saved_reg
+    endfunction
+
+    " Returns true if paste mode is enabled
+    function! HasPaste()
+      if &paste
+        return 'PASTE MODE  '
+      endif
+      return ''
+    endfunction
+
+    " Don't close window, when deleting a buffer
+    "command! Bclose call <SID>BufcloseCloseIt()
+    function! <SID>BufcloseCloseIt()
+      let l:currentBufNum = bufnr("%")
+      let l:alternateBufNum = bufnr("#")
+
+      if buflisted(l:alternateBufNum)
+        buffer #
+      else
+        bnext
+      endif
+
+      if bufnr("%") == l:currentBufNum
+        new
+      endif
+
+      if buflisted(l:currentBufNum)
+        execute("bdelete! ".l:currentBufNum)
+      endif
     endfunction
 " }
 
