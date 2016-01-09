@@ -716,7 +716,8 @@ if iCanHazVundle == 0
   set splitright                  " Puts new vsplit windows to the right of the current
   set splitbelow                  " Puts new split windows to the bottom of the current
   "set matchpairs+=<:>             " Match, to be used with %
-  set pastetoggle=<F12>           " pastetoggle (sane indentation on pastes)
+  "set pastetoggle=<F12>           " pastetoggle (sane indentation on pastes)
+  set pastetoggle=<F2>            " pastetoggle (sane indentation on pastes)
   "set comments=sl:/*,mb:*,elx:*/  " auto format comment blocks
 
   " Remove trailing whitespaces and ^M chars
@@ -739,11 +740,12 @@ if iCanHazVundle == 0
   " Linebreak on 500 characters
   "set lbr
   "set tw=500
-  "set tw=0
+  set tw=0
 
-  set noai                              "Disable Auto indent
-  "set ai                                "Auto indent
-  "set si                                "Smart indent
+  set noai                              " Disable Auto indent
+  "set ai                                " Auto indent
+  "set si                                " Smart indent
+  "set wrap                              " Wrap lines
 
 " }
 
@@ -905,9 +907,6 @@ if iCanHazVundle == 0
   " http://stackoverflow.com/a/8064607/127816
   vnoremap . :normal .<CR>
 
-  " For when you forget to sudo.. Really Write the file.
-  cmap w!! w !sudo tee % >/dev/null
-
   " Some helpers to edit mode
   " http://vimcasts.org/e/14
   cnoremap %% <C-R>=fnameescape(expand('%:h')).'/'<cr>
@@ -937,6 +936,8 @@ if iCanHazVundle == 0
   " Fast saving
   nmap <leader>w :w!<cr>
 
+  " For when you forget to sudo.. Really Write the file.
+  "cmap w!! w !sudo tee % >/dev/null
   " :W sudo saves the file
   " (useful for handling the permission-denied error)
   command W w !sudo tee % > /dev/null
