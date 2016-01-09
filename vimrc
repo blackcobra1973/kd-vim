@@ -1576,6 +1576,40 @@ if iCanHazVundle == 0
         endif
     " }
 
+    " Syntastic {
+        if isdirectory(expand("~/.vim/bundle/syntastic"))
+          " If enabled, syntastic will do syntax checks when buffers are first loaded as
+          " well as on saving >
+          let g:syntastic_check_on_open=1
+
+          " Normally syntastic runs syntax checks whenever buffers are written to disk.
+          " If you want to skip these checks when you issue |:wq|, |:x|, and |:ZZ|, set this
+          " variable to 0. >
+          "let g:syntastic_check_on_wq=0
+
+          " If enabled, syntastic will echo the error associated with the current line to
+          " the command window. If multiple errors are found, the first will be used. >
+          let g:syntastic_echo_current_error=1
+
+          " Use this option to tell syntastic whether to use the |:sign| interface to mark
+          " syntax errors: >
+          let g:syntastic_enable_signs=1
+
+          let g:syntastic_error_symbol='✗'
+          let g:syntastic_warning_symbol='⚠'
+
+          "let g:syntastic_full_redraws=0
+
+          " Use this option to tell syntastic whether to display error messages in balloons
+          " when the mouse is hovered over erroneous lines: >
+          let g:syntastic_enable_balloons = 1
+
+          " Use this option to tell syntastic whether to use syntax highlighting to mark
+          " errors (where possible). Highlighting can be turned off with the following >
+          let g:syntastic_enable_highlighting = 1
+        endif
+    " }
+
     " VIM Indent_Guides {
         if isdirectory(expand("~/.vim/bundle/vim-indent-guides/"))
             nmap <silent> <F8> <Plug>IndentGuidesToggle
