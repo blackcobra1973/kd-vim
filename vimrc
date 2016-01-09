@@ -814,6 +814,12 @@ if iCanHazVundle == 0
   "set si                                " Smart indent
   "set wrap                              " Wrap lines
 
+  """"""""""""""""""""""""""""""
+  " => Vim grep
+  """"""""""""""""""""""""""""""
+  let Grep_Skip_Dirs = 'RCS CVS SCCS .svn generated'
+  set grepprg=/bin/grep\ -nH
+
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -1072,14 +1078,14 @@ if iCanHazVundle == 0
     " }
 
     " PIV {
-        if isdirectory(expand("~/.vim/bundle/PIV"))
+        if isdirectory(expand("~/.vim/bundle/PIV/"))
             let g:DisableAutoPHPFolding = 0
             let g:PIVAutoClose = 0
         endif
     " }
 
     " Misc {
-        if isdirectory(expand("~/.vim/bundle/nerdtree"))
+        if isdirectory(expand("~/.vim/bundle/nerdtree/"))
             let g:NERDShutUp=1
         endif
         if isdirectory(expand("~/.vim/bundle/matchit.zip"))
@@ -1146,7 +1152,7 @@ if iCanHazVundle == 0
       endif
     " }
 
-    " NerdTree {
+    " Nerd Tree {
         if isdirectory(expand("~/.vim/bundle/nerdtree"))
             map <F7>       :NERDTreeToggle<CR>
             "map <C-e> <plug>NERDTreeTabsToggle<CR>
@@ -1156,7 +1162,7 @@ if iCanHazVundle == 0
             "nmap <leader>nt :NERDTreeFind<CR>
 
             let NERDTreeShowBookmarks=1
-            let NERDTreeIgnore=['\.py[cd]$', '\~$', '\.swo$', '\.swp$', '^\.git$', '^\.hg$', '^\.svn$', '\.bzr$']
+            "let NERDTreeIgnore=['\.py[cd]$', '\~$', '\.swo$', '\.swp$', '^\.git$', '^\.hg$', '^\.svn$', '\.bzr$']
             let NERDTreeChDirMode=0
             let NERDTreeQuitOnOpen=1
             let NERDTreeMouseMode=2
@@ -1217,46 +1223,51 @@ if iCanHazVundle == 0
 
     " CTRL-P {
         if isdirectory(expand("~/.vim/bundle/ctrlp.vim/"))
-            let g:ctrlp_working_path_mode = 0
-            "let g:ctrlp_working_path_mode = 'ra'
+          let g:ctrlp_working_path_mode = 0
+          "let g:ctrlp_working_path_mode = 'ra'
 
-            nnoremap <silent> <D-t> :CtrlP<CR>
-            nnoremap <silent> <D-r> :CtrlPMRU<CR>
+          nnoremap <silent> <D-t> :CtrlP<CR>
+          nnoremap <silent> <D-r> :CtrlPMRU<CR>
 
-            let g:ctrlp_custom_ignore = {
-                \ 'dir':  '\.git$\|\.hg$\|\.svn$',
-                \ 'file': '\.exe$\|\.so$\|\.dll$\|\.pyc$' }
+          "let g:ctrlp_map = '<c-f>'
+          "map <c-b> :CtrlPBuffer<cr>
 
-            if executable('ag')
-                let s:ctrlp_fallback = 'ag %s --nocolor -l -g ""'
-            elseif executable('ack-grep')
-                let s:ctrlp_fallback = 'ack-grep %s --nocolor -f'
-            elseif executable('ack')
-                let s:ctrlp_fallback = 'ack %s --nocolor -f'
-            " On Windows use "dir" as fallback command.
-            elseif WINDOWS()
-                let s:ctrlp_fallback = 'dir %s /-n /b /s /a-d'
-            else
-                let s:ctrlp_fallback = 'find %s -type f'
-            endif
-            if exists("g:ctrlp_user_command")
-                unlet g:ctrlp_user_command
-            endif
-            let g:ctrlp_user_command = {
-                \ 'types': {
-                    \ 1: ['.git', 'cd %s && git ls-files . --cached --exclude-standard --others'],
-                    \ 2: ['.hg', 'hg --cwd %s locate -I .'],
-                \ },
-                \ 'fallback': s:ctrlp_fallback
+          let g:ctrlp_max_height = 20
+          "let g:ctrlp_custom_ignore = 'node_modules\|^\.DS_Store\|^\.git\|^\.coffee'
+
+          let g:ctrlp_custom_ignore = {
+            \ 'dir':  '\.git$\|\.hg$\|\.svn$',
+            \ 'file': '\.exe$\|\.so$\|\.dll$\|\.pyc$' }
+
+          if executable('ag')
+            let s:ctrlp_fallback = 'ag %s --nocolor -l -g ""'
+          elseif executable('ack-grep')
+            let s:ctrlp_fallback = 'ack-grep %s --nocolor -f'
+          elseif executable('ack')
+            let s:ctrlp_fallback = 'ack %s --nocolor -f'
+          " On Windows use "dir" as fallback command.
+          elseif WINDOWS()
+            let s:ctrlp_fallback = 'dir %s /-n /b /s /a-d'
+          else
+            let s:ctrlp_fallback = 'find %s -type f'
+          endif
+          if exists("g:ctrlp_user_command")
+            unlet g:ctrlp_user_command
+          endif
+          let g:ctrlp_user_command = {
+            \ 'types': {
+              \ 1: ['.git', 'cd %s && git ls-files . --cached --exclude-standard --others'],
+              \ 2: ['.hg', 'hg --cwd %s locate -I .'],
+              \ },
+              \ 'fallback': s:ctrlp_fallback
             \ }
 
-            if isdirectory(expand("~/.vim/bundle/ctrlp-funky/"))
-                " CtrlP extensions
-                let g:ctrlp_extensions = ['funky']
-
-                "funky
-                nnoremap <Leader>fu :CtrlPFunky<Cr>
-            endif
+          if isdirectory(expand("~/.vim/bundle/ctrlp-funky/"))
+            " CtrlP extensions
+            let g:ctrlp_extensions = ['funky']
+            "funky
+            nnoremap <Leader>fu :CtrlPFunky<Cr>
+          endif
         endif
     "}
 
@@ -1283,24 +1294,26 @@ if iCanHazVundle == 0
 
     " Rainbow {
         if isdirectory(expand("~/.vim/bundle/rainbow/"))
-            let g:rainbow_active = 1 "0 if you want to enable it later via :RainbowToggle
+          let g:rainbow_active = 1 "0 if you want to enable it later via :RainbowToggle
         endif
     "}
 
     " Fugitive {
         if isdirectory(expand("~/.vim/bundle/vim-fugitive/"))
-            nnoremap <silent> <leader>gs :Gstatus<CR>
-            nnoremap <silent> <leader>gd :Gdiff<CR>
-            nnoremap <silent> <leader>gc :Gcommit<CR>
-            nnoremap <silent> <leader>gb :Gblame<CR>
-            nnoremap <silent> <leader>gl :Glog<CR>
-            nnoremap <silent> <leader>gp :Git push<CR>
-            nnoremap <silent> <leader>gr :Gread<CR>
-            nnoremap <silent> <leader>gw :Gwrite<CR>
-            nnoremap <silent> <leader>ge :Gedit<CR>
-            " Mnemonic _i_nteractive
-            nnoremap <silent> <leader>gi :Git add -p %<CR>
-            nnoremap <silent> <leader>gg :SignifyToggle<CR>
+          nnoremap <silent> <leader>gs :Gstatus<CR>
+          nnoremap <silent> <leader>gd :Gdiff<CR>
+          nnoremap <silent> <leader>gc :Gcommit<CR>
+          nnoremap <silent> <leader>gb :Gblame<CR>
+          nnoremap <silent> <leader>gl :Glog<CR>
+          nnoremap <silent> <leader>gp :Git push<CR>
+          nnoremap <silent> <leader>gr :Gread<CR>
+          "nnoremap <silent> <leader>gw :Gwrite<CR>
+          nnoremap <silent> <leader>gw :Gwrite<CR>:GitGutter<CR>
+          nnoremap <silent> <leader>ge :Gedit<CR>
+          " Mnemonic _i_nteractive
+          nnoremap <silent> <leader>gi :Git add -p %<CR>
+          nnoremap <silent> <leader>gg :SignifyToggle<CR>
+          "nnoremap <silent> <leader>gg :GitGutterToggle<CR>
         endif
     "}
 
@@ -1579,28 +1592,28 @@ if iCanHazVundle == 0
 
     " Snippets {
         if count(g:kd_bundle_groups, 'neocomplcache') ||
-                    \ count(g:kd_bundle_groups, 'neocomplete')
+          \ count(g:kd_bundle_groups, 'neocomplete')
 
-            " Use honza's snippets.
-            "let g:neosnippet#snippets_directory='~/.vim/bundle/vim-snippets/snippets'
+          " Use honza's snippets.
+          "let g:neosnippet#snippets_directory='~/.vim/bundle/vim-snippets/snippets'
 
-            " Enable neosnippet snipmate compatibility mode
-            "let g:neosnippet#enable_snipmate_compatibility = 1
+          " Enable neosnippet snipmate compatibility mode
+          "let g:neosnippet#enable_snipmate_compatibility = 1
 
-            " For snippet_complete marker.
-            "if !exists("g:kd_no_conceal")
-            "    if has('conceal')
-            "        set conceallevel=2 concealcursor=i
-            "    endif
-            "endif
+          " For snippet_complete marker.
+          "if !exists("g:kd_no_conceal")
+          "    if has('conceal')
+          "        set conceallevel=2 concealcursor=i
+          "    endif
+          "endif
 
-            " Enable neosnippets when using go
-            let g:go_snippet_engine = "neosnippet"
+          " Enable neosnippets when using go
+          let g:go_snippet_engine = "neosnippet"
 
-            " Disable the neosnippet preview candidate window
-            " When enabled, there can be too much visual noise
-            " especially when splits are used.
-            "set completeopt-=preview
+          " Disable the neosnippet preview candidate window
+          " When enabled, there can be too much visual noise
+          " especially when splits are used.
+          "set completeopt-=preview
         endif
     " }
 
@@ -1671,7 +1684,7 @@ if iCanHazVundle == 0
             nmap <silent> <F8> <Plug>IndentGuidesToggle
             let g:indent_guides_start_level = 2
             let g:indent_guides_guide_size = 1
-            let g:indent_guides_enable_on_vim_startup = 1
+            let g:indent_guides_enable_on_vim_startup = 0
             let g:indent_guides_auto_colors = 0
 
             autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=black
@@ -1681,10 +1694,12 @@ if iCanHazVundle == 0
     " }
 
     " WildFire {
-    let g:wildfire_objects = {
-      \ "*" : ["i'", 'i"', "i)", "i]", "i}", "ip"],
-      \ "html,xml" : ["at"],
-      \ }
+      if isdirectory(expand("~/.vim/bundle/wildfire.vim/"))
+        let g:wildfire_objects = {
+          \ "*" : ["i'", 'i"', "i)", "i]", "i}", "ip"],
+          \ "html,xml" : ["at"],
+          \ }
+      endif
     " }
 
     " vim-airline {
@@ -1709,7 +1724,7 @@ if iCanHazVundle == 0
           let g:airline_detect_iminsert=0     " enable iminsert detection
           let g:airline_inactive_collapse=1   " determine whether inactive windows should have the left section collapsed to
                                               " only the filename of that buffer.
-          let g:airline_powerline_fonts=0     " enable/disable usage of patched powerline font symbols
+          "let g:airline_powerline_fonts=0     " enable/disable usage of patched powerline font symbols
 
           if !exists('g:airline_symbols')
             let g:airline_symbols = {}
