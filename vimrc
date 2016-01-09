@@ -505,6 +505,15 @@ if iCanHazVundle == 0
   endfunction
   noremap <leader>bg :call ToggleBG()<CR>
 
+  filetype plugin indent on   " Automatically detect file types.
+  syntax on                   " Syntax highlighting
+  set mouse=a                 " Automatically enable mouse usage
+  set mousehide               " Hide the mouse cursor while typing
+  scriptencoding utf-8        " Set encoding to UTF8
+  set history=1000            " Sets how many lines of history VIM has to remember
+  set autoread                " Set to auto read when a file is changed from the outside
+  set ffs=unix,dos,mac        " Use Unix as the standard file type
+
   " Most prefer to automatically switch to the current file directory when
   " a new buffer is opened; to prevent this behavior, add the following to
   " your .vimrc.before.local file:
@@ -515,29 +524,22 @@ if iCanHazVundle == 0
   endif
 
   "set autowrite                       " Automatically write a file when leaving a modified buffer
-  "set shortmess+=filmnrxoOtT          " Abbrev. of messages (avoids 'hit enter')
-  "set viewoptions=folds,options,cursor,unix,slash " Better Unix / Windows compatibility
-  "set virtualedit=onemore             " Allow for cursor beyond last character
+  set shortmess+=filmnrxoOtT          " Abbrev. of messages (avoids 'hit enter')
+  set viewoptions=folds,options,cursor,unix,slash " Better Unix / Windows compatibility
+  set virtualedit=onemore             " Allow for cursor beyond last character
   "set spell                           " Spell checking on
   "set hidden                          " Allow buffer switching without saving
-  "set iskeyword-=.                    " '.' is an end of word designator
-  "set iskeyword-=#                    " '#' is an end of word designator
-  "set iskeyword-=-                    " '-' is an end of word designator
+  set iskeyword-=.                    " '.' is an end of word designator
+  set iskeyword-=#                    " '#' is an end of word designator
+  set iskeyword-=-                    " '-' is an end of word designator
 
   " Instead of reverting the cursor to the last position in the buffer, we
   " set it to the first line when editing a git commit message
   au FileType gitcommit au! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
 
-  set history=1000                      " Sets how many lines of history VIM has to remember
-  set autoread                          " Set to auto read when a file is changed from the outside
-  set ffs=unix,dos,mac                  " Use Unix as the standard file type
-
   " Enable filetype plugins
-  filetype plugin on
-  filetype indent on
-
-  " Set encoding to UTF8
-  scriptencoding utf-8
+  "filetype plugin on
+  "filetype indent on
 
   " enable per-directory .vimrc files
   "set exrc
@@ -550,17 +552,6 @@ if iCanHazVundle == 0
       set clipboard=unnamed
     endif
   endif
-
-  " Return to last edit position when opening files (You want this!)
-  " autocmd BufReadPost *
-  "  \ if line("'\""') > 0 && line("'\""') <= line("$") |
-  "  \   exe "normal! g`\"" |
-  "  \ endif`
-
-  " Automatically enable mouse usage
-  "set mouse=a
-  " Hide the mouse cursor while typing
-  "set mousehide
 
   " Misc
   highlight FoldColumn ctermfg=darkyellow ctermbg=darkgrey
@@ -693,9 +684,6 @@ if iCanHazVundle == 0
   set novisualbell
   set t_vb=
   set tm=500
-
-  " Enable syntax highlighting
-  syntax enable
 
   " Add a bit extra margin to the left
   "set foldcolumn=1
