@@ -741,11 +741,62 @@ if iCanHazVundle == 0
   " preceding line best in a plugin but here for now.
 
   autocmd BufNewFile,BufRead *.coffee set filetype=coffee
+  au BufNewFile,BufRead *.cjs setfiletype javascript
+  au BufNewFile,BufRead *.thtml setfiletype php
+  au BufNewFile,BufRead *.pl setfiletype prolog
+  au BufNewFile,BufRead *.json setfiletype json
+  au BufNewFile,BufRead *.asc setfiletype asciidoc
+  autocmd BufNewFile,BufRead *.csv setf csv
+  autocmd BufNewFile,BufRead *.txt setlocal textwidth=0
+  au FileType * setl fo-=cro        " disable autocomment
 
   " Workaround vim-commentary for Haskell
   autocmd FileType haskell setlocal commentstring=--\ %s
   " Workaround broken colour highlighting in Haskell
   autocmd FileType haskell,rust setlocal nospell
+
+  """"""""""""""""""""""""""""""
+  " => Python section
+  """"""""""""""""""""""""""""""
+  let python_highlight_all = 1
+  au FileType python syn keyword pythonDecorator True None False self
+
+  au BufNewFile,BufRead *.jinja set syntax=htmljinja
+  au BufNewFile,BufRead *.mako set ft=mako
+
+  au FileType python map <buffer> F :set foldmethod=indent<cr>
+
+  au FileType python inoremap <buffer> $r return
+  au FileType python inoremap <buffer> $i import
+  au FileType python inoremap <buffer> $p print
+  au FileType python inoremap <buffer> $f #--- PH ----------------------------------------------<esc>FP2xi
+  au FileType python map <buffer> <leader>1 /class
+  au FileType python map <buffer> <leader>2 /def
+  au FileType python map <buffer> <leader>C ?class
+  au FileType python map <buffer> <leader>D ?def
+
+  """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+  " => Python settings
+  """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+  au BufNewFile,BufRead *.py set expandtab
+  au BufNewFile,BufRead *.py set nosmartindent
+  let g:pyindent_open_paren = '&sw'
+  let g:pyindent_nested_paren = '&sw'
+  let g:pyindent_continue = '&sw'
+
+  """"""""""""""""""""""""""""""
+  " => JavaScript section
+  """""""""""""""""""""""""""""""
+  au FileType javascript call JavaScriptFold()
+  au FileType javascript setl fen
+  au FileType javascript setl nocindent
+
+  au FileType javascript imap <c-t> AJS.log();<esc>hi
+  au FileType javascript imap <c-a> alert();<esc>hi
+
+  au FileType javascript inoremap <buffer> $r return
+  au FileType javascript inoremap <buffer> $f //--- PH ----------------------------------------------<esc>FP2xi
+
 
   " Return to last edit position when opening files (You want this!)
   autocmd BufReadPost *
@@ -1648,82 +1699,81 @@ if iCanHazVundle == 0
         " See `:echo g:airline_theme_map` for some more choices
         " Default in terminal vim is 'dark'
         if isdirectory(expand("~/.vim/bundle/vim-airline/"))
-            if !exists('g:airline_theme')
-                "let g:airline_theme = 'solarized'
-                let g:airline_theme='murmur'
-            endif
+          if !exists('g:airline_theme')
+            "let g:airline_theme = 'solarized'
+            let g:airline_theme='murmur'
+          endif
 
-            let g:airline_detect_modified=1     " enable modified detection
-            let g:airline_detect_paste=1        " enable paste detection
-            let g:airline_detect_iminsert=0     " enable iminsert detection
-            let g:airline_inactive_collapse=1   " determine whether inactive windows should have the left section collapsed to
-                                                " only the filename of that buffer.
-            let g:airline_powerline_fonts=0     " enable/disable usage of patched powerline font symbols
+          let g:airline_detect_modified=1     " enable modified detection
+          let g:airline_detect_paste=1        " enable paste detection
+          let g:airline_detect_iminsert=0     " enable iminsert detection
+          let g:airline_inactive_collapse=1   " determine whether inactive windows should have the left section collapsed to
+                                              " only the filename of that buffer.
+          let g:airline_powerline_fonts=0     " enable/disable usage of patched powerline font symbols
 
-            if !exists('g:airline_symbols')
-              let g:airline_symbols = {}
-            endif
+          if !exists('g:airline_symbols')
+            let g:airline_symbols = {}
+          endif
 
+          if !exists('g:airline_powerline_fonts')
+            " Use the default set of separators with a few customizations
+            "let g:airline_left_sep='›'  " Slightly fancier than '>'
+            "let g:airline_left_sep = '»'
+            let g:airline_left_sep = '▶'
+            "let g:airline_right_sep='‹' " Slightly fancier than '<'
+            "let g:airline_right_sep = '«'
+            let g:airline_right_sep = '◀'
 
-            if !exists('g:airline_powerline_fonts')
-                " Use the default set of separators with a few customizations
-                "let g:airline_left_sep='›'  " Slightly fancier than '>'
-                "let g:airline_left_sep = '»'
-                let g:airline_left_sep = '▶'
-                "let g:airline_right_sep='‹' " Slightly fancier than '<'
-                "let g:airline_right_sep = '«'
-                let g:airline_right_sep = '◀'
+            " unicode symbols
+            "let g:airline_symbols.linenr = '␊'
+            "let g:airline_symbols.linenr = '␤'
+            let g:airline_symbols.linenr = '¶'
+            let g:airline_symbols.branch = '⎇'
+            "let g:airline_symbols.paste = 'ρ'
+            let g:airline_symbols.paste = 'Þ'
+            "let g:airline_symbols.paste = '∥'
+            let g:airline_symbols.whitespace = 'Ξ'
+          endif
 
-                " unicode symbols
-                "let g:airline_symbols.linenr = '␊'
-                "let g:airline_symbols.linenr = '␤'
-                let g:airline_symbols.linenr = '¶'
-                let g:airline_symbols.branch = '⎇'
-                "let g:airline_symbols.paste = 'ρ'
-                let g:airline_symbols.paste = 'Þ'
-                "let g:airline_symbols.paste = '∥'
-                let g:airline_symbols.whitespace = 'Ξ'
-            endif
+          let g:airline#extensions#quickfix#quickfix_text = 'Quickfix'      " configure the title text for quickfix buffers
+          let g:airline#extensions#quickfix#location_text = 'Location'      " configure the title text for location list buffers
+          let g:airline#extensions#bufferline#enabled = 1                   " enable/disable bufferline integration
+          let g:airline#extensions#bufferline#overwrite_variables = 1       " determine whether bufferline will overwrite
+                                                                            " customization variables
+          let g:airline#extensions#branch#enabled = 1                       " enable/disable fugitive/lawrencium integration
+          let g:airline#extensions#branch#empty_message = ''                " change the text for when no branch is detected
+          let g:airline#extensions#branch#use_vcscommand = 0                " use vcscommand.vim if available
+          let g:airline#extensions#branch#displayed_head_limit = 10         " truncate long branch names to a fixed length
+          let g:airline#extensions#branch#format = 0                        " customize formatting of branch name >
+                                                                            " default value leaves the name unmodifed
+          let g:airline#extensions#branch#format = 1                        " to only show the tail, e.g. a branch 'feature/foo'
+                                                                            " show 'foo'
+
+          " if a string is provided, it should be the name of a function that
+          " takes a string and returns the desired value
+          let g:airline#extensions#branch#format = 'CustomBranchName'
+          function! CustomBranchName(name)
+            return '[' . a:name . ']'
+          endfunction
+
+          " enable/disable syntastic integration
+          let g:airline#extensions#syntastic#enabled = 1
+
+          " enable/disable tagbar integration
+          let g:airline#extensions#tagbar#enabled = 1
+          " change how tags are displayed (:help tagbar-statusline)
+          "let g:airline#extensions#tagbar#flags = ''  (default)
+          "let g:airline#extensions#tagbar#flags = 'f'
+          "let g:airline#extensions#tagbar#flags = 's'
+          "let g:airline#extensions#tagbar#flags = 'p'
+
+          " enable/disable showing a summary of changed hunks under source control.
+          let g:airline#extensions#hunks#enabled = 1
+          " enable/disable showing only non-zero hunks.
+          let g:airline#extensions#hunks#non_zero_only = 1
+          " set hunk count symbols.
+          let g:airline#extensions#hunks#hunk_symbols = ['+', '~', '-']
         endif
-
-        let g:airline#extensions#quickfix#quickfix_text = 'Quickfix'      " configure the title text for quickfix buffers
-        let g:airline#extensions#quickfix#location_text = 'Location'      " configure the title text for location list buffers
-        let g:airline#extensions#bufferline#enabled = 1                   " enable/disable bufferline integration
-        let g:airline#extensions#bufferline#overwrite_variables = 1       " determine whether bufferline will overwrite
-                                                                          " customization variables
-        let g:airline#extensions#branch#enabled = 1                       " enable/disable fugitive/lawrencium integration
-        let g:airline#extensions#branch#empty_message = ''                " change the text for when no branch is detected
-        let g:airline#extensions#branch#use_vcscommand = 0                " use vcscommand.vim if available
-        let g:airline#extensions#branch#displayed_head_limit = 10         " truncate long branch names to a fixed length
-        let g:airline#extensions#branch#format = 0                        " customize formatting of branch name >
-                                                                          " default value leaves the name unmodifed
-        let g:airline#extensions#branch#format = 1                        " to only show the tail, e.g. a branch 'feature/foo'
-                                                                          " show 'foo'
-
-        " if a string is provided, it should be the name of a function that
-        " takes a string and returns the desired value
-        let g:airline#extensions#branch#format = 'CustomBranchName'
-        function! CustomBranchName(name)
-          return '[' . a:name . ']'
-        endfunction
-
-        " enable/disable syntastic integration
-        let g:airline#extensions#syntastic#enabled = 1
-
-        " enable/disable tagbar integration
-        let g:airline#extensions#tagbar#enabled = 1
-        " change how tags are displayed (:help tagbar-statusline)
-        "let g:airline#extensions#tagbar#flags = ''  (default)
-        "let g:airline#extensions#tagbar#flags = 'f'
-        "let g:airline#extensions#tagbar#flags = 's'
-        "let g:airline#extensions#tagbar#flags = 'p'
-
-        " enable/disable showing a summary of changed hunks under source control.
-        let g:airline#extensions#hunks#enabled = 1
-        " enable/disable showing only non-zero hunks.
-        let g:airline#extensions#hunks#non_zero_only = 1
-        " set hunk count symbols.
-        let g:airline#extensions#hunks#hunk_symbols = ['+', '~', '-']
     " }
 " }
 
@@ -1865,6 +1915,29 @@ if iCanHazVundle == 0
         execute a:command . " " . expand(a:file, ":p")
     endfunction
 
+    """"""""""""""""""""""""""""""
+    " => JavaScript section
+    """""""""""""""""""""""""""""""
+    function! JavaScriptFold()
+      setl foldmethod=syntax
+      setl foldlevelstart=1
+      syn region foldBraces start=/{/ end=/}/ transparent fold keepend extend
+
+      function! FoldText()
+        return substitute(getline(v:foldstart), '{.*', '{...}', '''}')
+      endfunction
+      setl foldtext=FoldText()
+    endfunction
+
+    """"""""""""""""""""""""""""""
+    " => CoffeeScript section
+    """""""""""""""""""""""""""""""
+    function! CoffeeScriptFold()
+      setl foldmethod=indent
+      setl foldlevelstart=1
+    endfunction
+    au FileType coffee call CoffeeScriptFold()
+
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     " => Automatically chmod +x for files starting with #! .../bin/
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -1873,7 +1946,6 @@ if iCanHazVundle == 0
         execute "silent !chmod +x " . shellescape(expand('%:h'), 1)
       endif
     endfunction
-
     au BufWritePost * call s:AutoChmodX()
 
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -1897,7 +1969,6 @@ if iCanHazVundle == 0
         call rename(l:outfile, l:css)
       endif
     endfunction
-
     au BufWritePost *.less call s:compile_less()
 
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
