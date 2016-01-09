@@ -937,10 +937,10 @@ if iCanHazVundle == 0
   nmap <leader>w :w!<cr>
 
   " For when you forget to sudo.. Really Write the file.
-  "cmap w!! w !sudo tee % >/dev/null
+  cmap w!! w !sudo tee % >/dev/null
   " :W sudo saves the file
   " (useful for handling the permission-denied error)
-  command W w !sudo tee % > /dev/null
+  " command W w !sudo tee % > /dev/null
 
 " }
 
