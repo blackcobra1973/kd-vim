@@ -1622,7 +1622,7 @@ if iCanHazVundle == 0
     " }
 
     " Gundo {
-        if isdirectory(expand("~/.vim/bundle/gundo.vim"))
+        if isdirectory(expand("~/.vim/bundle/gundo.vim/"))
           if version >= 703
             nnoremap <F5> :GundoToggle<CR>
           endif
@@ -1634,7 +1634,7 @@ if iCanHazVundle == 0
     " }
 
     " Syntastic {
-        if isdirectory(expand("~/.vim/bundle/syntastic"))
+        if isdirectory(expand("~/.vim/bundle/syntastic/"))
           " If enabled, syntastic will do syntax checks when buffers are first loaded as
           " well as on saving >
           let g:syntastic_check_on_open=1
