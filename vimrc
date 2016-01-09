@@ -656,7 +656,7 @@ if iCanHazVundle == 0
   hi User1 term=inverse,bold cterm=inverse,bold ctermfg=red
 
   " Show (partial) command in status line.
-  "set showcmd
+  set showcmd
 
   set backspace=indent,eol,start  " Backspace for dummies
   "set backspace=eol,start,indent  " Backspace for dummies
@@ -670,7 +670,8 @@ if iCanHazVundle == 0
   set ignorecase                  " Case insensitive search
   set smartcase                   " Case sensitive when uc present
   set wildmenu                    " Show list instead of just completing
-  set wildmode=list:longest,full  " Command <Tab> completion, list matches, then longest common part, then all.
+  "set wildmode=list:longest,full  " Command <Tab> completion, list matches, then longest common part, then all.
+  set wildmode=longest:full       " Command <Tab> completion, list matches, then longest common part, then all.
   set whichwrap=b,s,h,l,<,>,[,]   " Backspace and cursor keys wrap too
   "set whichwrap+=<,>,h,l          " Backspace and cursor keys wrap too
   set scrolljump=5                " Lines to scroll when cursor leaves screen
@@ -802,8 +803,6 @@ if iCanHazVundle == 0
 
   au FileType javascript inoremap <buffer> $r return
   au FileType javascript inoremap <buffer> $f //--- PH ----------------------------------------------<esc>FP2xi
-
-
 
   " Linebreak on 500 characters
   "set lbr
