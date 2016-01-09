@@ -1610,8 +1610,7 @@ if iCanHazVundle == 0
         " Default in terminal vim is 'dark'
         if isdirectory(expand("~/.vim/bundle/vim-airline/"))
             if !exists('g:airline_theme')
-                let g:airline_theme = 'solarized'
-            else
+                "let g:airline_theme = 'solarized'
                 let g:airline_theme='murmur'
             endif
 
