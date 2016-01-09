@@ -551,6 +551,12 @@ if iCanHazVundle == 0
     endif
   endif
 
+  " Return to last edit position when opening files (You want this!)
+  autocmd BufReadPost *
+    \ if line("'\""') > 0 && line("'\""') <= line("$") |
+    \   exe "normal! g`\"" |
+    \ endif`
+
   " Automatically enable mouse usage
   "set mouse=a
   " Hide the mouse cursor while typing
@@ -798,11 +804,6 @@ if iCanHazVundle == 0
   au FileType javascript inoremap <buffer> $f //--- PH ----------------------------------------------<esc>FP2xi
 
 
-  " Return to last edit position when opening files (You want this!)
-  autocmd BufReadPost *
-    \ if line("'\""') > 0 && line("'\""') <= line("$") |
-    \   exe "normal! g`\"" |
-    \ endif`
 
   " Linebreak on 500 characters
   "set lbr
