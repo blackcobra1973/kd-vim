@@ -79,6 +79,8 @@
         " want to try them first.
         set fileencodings=ucs-bom,utf-8,utf-16le,cp1252,iso-8859-15
       endif
+    else
+      set encoding=utf8
     endif
   " }
 
@@ -529,10 +531,11 @@ if iCanHazVundle == 0
 
   set history=1000                      " Sets how many lines of history VIM has to remember
   set autoread                          " Set to auto read when a file is changed from the outside
+  set ffs=unix,dos,mac                  " Use Unix as the standard file type
 
   " Enable filetype plugins
   filetype plugin on
-  "filetype indent on
+  filetype indent on
 
   " Set encoding to UTF8
   scriptencoding utf-8
@@ -554,6 +557,9 @@ if iCanHazVundle == 0
   " Hide the mouse cursor while typing
   "set mousehide
 
+  " Misc
+  highlight FoldColumn ctermfg=darkyellow ctermbg=darkgrey
+
   " Setting up the directories {
 
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -570,6 +576,10 @@ if iCanHazVundle == 0
       set undolevels=1000         " Maximum number of changes that can be undone
       set undoreload=10000        " Maximum number lines to save for undo on a buffer reload
     endif
+
+    set viminfo='20,\"500         " Keep a .viminfo file.
+    set viminfo+='100,f1          " Save marks and stuff
+    set viminfo^=%                " Remember info about open buffers on close
 
     " To disable views add the following to your .vimrc.before.local file:
     "   let g:kd_no_views = 1
@@ -596,7 +606,7 @@ if iCanHazVundle == 0
     color solarized             " Load a colorscheme
   else
     let g:solarized_termcolors=256
-    "colorscheme grb256
+    colorscheme grb256
   endif
 
   set tabpagemax=15               " Only show 15 tabs
@@ -637,7 +647,7 @@ if iCanHazVundle == 0
     set statusline+=%=%-14.(%l,%c%V%)\ %p%%  " Right aligned file nav info
   endif
 
-  "hi User1 term=inverse,bold cterm=inverse,bold ctermfg=red
+  hi User1 term=inverse,bold cterm=inverse,bold ctermfg=red
 
   " Show (partial) command in status line.
   "set showcmd
@@ -736,6 +746,12 @@ if iCanHazVundle == 0
   autocmd FileType haskell setlocal commentstring=--\ %s
   " Workaround broken colour highlighting in Haskell
   autocmd FileType haskell,rust setlocal nospell
+
+  " Return to last edit position when opening files (You want this!)
+  autocmd BufReadPost *
+    \ if line("'\""') > 0 && line("'\""') <= line("$") |
+    \   exe "normal! g`\"" |
+    \ endif`
 
   " Linebreak on 500 characters
   "set lbr
@@ -941,6 +957,11 @@ if iCanHazVundle == 0
   " :W sudo saves the file
   " (useful for handling the permission-denied error)
   " command W w !sudo tee % > /dev/null
+
+  " Visual mode pressing * or # searches for the current selection
+  " Super useful! From an idea by Michael Naumann
+  vnoremap <silent> * :call VisualSelection('f', '')<CR>
+  vnoremap <silent> # :call VisualSelection('b', '')<CR>
 
 " }
 
