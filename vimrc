@@ -507,8 +507,8 @@ if iCanHazVundle == 0
 
   filetype plugin indent on   " Automatically detect file types.
   syntax on                   " Syntax highlighting
-  set mouse=a                 " Automatically enable mouse usage
-  set mousehide               " Hide the mouse cursor while typing
+  "set mouse=a                 " Automatically enable mouse usage
+  "set mousehide               " Hide the mouse cursor while typing
   scriptencoding utf-8        " Set encoding to UTF8
   set history=1000            " Sets how many lines of history VIM has to remember
   set autoread                " Set to auto read when a file is changed from the outside
