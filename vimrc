@@ -250,6 +250,7 @@
     " General {
       if count(g:kd_bundle_groups, 'general')
         Bundle 'scrooloose/nerdtree'
+        Bundle 'jistr/vim-nerdtree-tabs'
         Bundle 'tpope/vim-surround'
         Bundle 'tpope/vim-repeat'
         Bundle 'spf13/vim-autoclose'
@@ -273,27 +274,25 @@
           Bundle 'bling/vim-airline'
         endif
         Bundle 'powerline/fonts'
-        " KD Extra general bundles
+        Bundle 'rhysd/conflict-marker.vim'
+        if !exists('g:kd_no_views')
+          Bundle 'vim-scripts/restore_view.vim'
+        endif
+        Bundle 'osyo-manga/vim-over'
+        Bundle 'gcmt/wildfire.vim'
         Bundle 'blackcobra1973/kd-vim-colors'
       endif
     " }
 
     " Extra General {
       if count(g:kd_bundle_groups, 'extra')
-        Bundle 'jistr/vim-nerdtree-tabs'
-        Bundle 'rhysd/conflict-marker.vim'
         Bundle 'jiangmiao/auto-pairs'
         Bundle 'vim-scripts/sessionman.vim'
         Bundle 'matchit.zip'
         Bundle 'bling/vim-bufferline'
-        if !exists('g:kd_no_views')
-          Bundle 'vim-scripts/restore_view.vim'
-        endif
         Bundle 'tpope/vim-abolish.git'
-        Bundle 'osyo-manga/vim-over'
         Bundle 'kana/vim-textobj-user'
         Bundle 'kana/vim-textobj-indent'
-        Bundle 'gcmt/wildfire.vim'
       endif
     " }
 
