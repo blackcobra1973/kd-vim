@@ -677,6 +677,7 @@ if iCanHazVundle == 0
   set lazyredraw                  " Don't redraw while executing macros (good performance config)
   set magic                       " For regular expressions turn magic on
   set showfulltag                 " Auto-complete things?
+  set nohls                       " Remove Space underscores
 
   " No annoying sound on errors
   set noerrorbells
