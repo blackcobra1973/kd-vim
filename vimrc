@@ -319,6 +319,7 @@
         " Pick one of the checksyntax, jslint, or syntastic
         Bundle 'scrooloose/syntastic'
         Bundle 'tpope/vim-fugitive'
+        Bundle 'gregsexton/gitv'
         Bundle 'mattn/webapi-vim'
         Bundle 'mattn/gist-vim'
         Bundle 'scrooloose/nerdcommenter'
