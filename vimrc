@@ -1283,28 +1283,35 @@ if iCanHazVundle == 0
     "}
 
     " Rainbow {
-        if isdirectory(expand("~/.vim/bundle/rainbow/"))
-          let g:rainbow_active = 1 "0 if you want to enable it later via :RainbowToggle
-        endif
+      if isdirectory(expand("~/.vim/bundle/rainbow/"))
+        let g:rainbow_active = 1 "0 if you want to enable it later via :RainbowToggle
+      endif
     "}
 
     " Fugitive {
-        if isdirectory(expand("~/.vim/bundle/vim-fugitive/"))
-          nnoremap <silent> <leader>gs :Gstatus<CR>
-          nnoremap <silent> <leader>gd :Gdiff<CR>
-          nnoremap <silent> <leader>gc :Gcommit<CR>
-          nnoremap <silent> <leader>gb :Gblame<CR>
-          nnoremap <silent> <leader>gl :Glog<CR>
-          nnoremap <silent> <leader>gp :Git push<CR>
-          nnoremap <silent> <leader>gr :Gread<CR>
-          "nnoremap <silent> <leader>gw :Gwrite<CR>
-          nnoremap <silent> <leader>gw :Gwrite<CR>:GitGutter<CR>
-          nnoremap <silent> <leader>ge :Gedit<CR>
-          " Mnemonic _i_nteractive
-          nnoremap <silent> <leader>gi :Git add -p %<CR>
-          nnoremap <silent> <leader>gg :SignifyToggle<CR>
-          "nnoremap <silent> <leader>gg :GitGutterToggle<CR>
-        endif
+      if isdirectory(expand("~/.vim/bundle/vim-fugitive/"))
+        nnoremap <silent> <leader>gs :Gstatus<CR>
+        nnoremap <silent> <leader>gd :Gdiff<CR>
+        nnoremap <silent> <leader>gc :Gcommit<CR>
+        nnoremap <silent> <leader>gb :Gblame<CR>
+        nnoremap <silent> <leader>gl :Glog<CR>
+        nnoremap <silent> <leader>gp :Git push<CR>
+        nnoremap <silent> <leader>gr :Gread<CR>
+        "nnoremap <silent> <leader>gw :Gwrite<CR>
+        nnoremap <silent> <leader>gw :Gwrite<CR>:GitGutter<CR>
+        nnoremap <silent> <leader>ge :Gedit<CR>
+        " Mnemonic _i_nteractive
+        nnoremap <silent> <leader>gi :Git add -p %<CR>
+        nnoremap <silent> <leader>gg :SignifyToggle<CR>
+        "nnoremap <silent> <leader>gg :GitGutterToggle<CR>
+      endif
+    "}
+
+    " gitv {
+      if isdirectory(expand("~/.vim/bundle/gitv/"))
+        nnoremap <silent> <leader>gv :Gitv<CR>
+        nnoremap <silent> <leader>gV :Gitv!<CR>
+      endif
     "}
 
     " YouCompleteMe {
