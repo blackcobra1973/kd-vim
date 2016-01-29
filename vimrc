@@ -271,7 +271,8 @@
         elseif exists('g:kd_use_powerline') && exists('g:kd_use_old_powerline')
           Bundle 'Lokaltog/vim-powerline'
         else
-          Bundle 'bling/vim-airline'
+          Bundle 'vim-airline/vim-airline'
+          Bundle 'vim-airline/vim-airline-themes'
         endif
         Bundle 'powerline/fonts'
         Bundle 'rhysd/conflict-marker.vim'
