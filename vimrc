@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.0.1 - 2016-01-27
+"       2.0.2 - 2016-02-09
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -671,7 +671,8 @@ if iCanHazVundle == 0
   set scrolloff=3                 " Minimum lines to keep above and below cursor
   set foldenable                  " Auto fold code
   set list
-  set listchars=tab:›\ ,trail:•,extends:#,nbsp:. " Highlight problematic whitespace
+  "set listchars=tab:›\ ,trail:•,extends:#,nbsp:. " Highlight problematic whitespace
+  set listchars=tab:›\ ,extends:#,nbsp:. " Highlight problematic whitespace
   set bs=2                        " Allow backspacing over everything in insert mode
   set so=7                        " Set 7 lines to the cursor - when moving vertically using j/k
   "set so=10                       " Set 10 lines to the cursor
