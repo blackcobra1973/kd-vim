@@ -506,7 +506,8 @@ if iCanHazVundle == 0
   endfunction
   noremap <leader>bg :call ToggleBG()<CR>
 
-  filetype plugin indent on   " Automatically detect file types.
+  "filetype plugin indent on   " Automatically detect file types.
+  filetype plugin on          " Automatically detect file types.
   syntax on                   " Syntax highlighting
   "set mouse=a                 " Automatically enable mouse usage
   "set mousehide               " Hide the mouse cursor while typing
