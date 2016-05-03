@@ -305,6 +305,7 @@
         Bundle 'flazz/vim-colorschemes'
         Bundle 'romainl/apprentice'
         Bundle 'lokaltog/vim-distinguished'
+        Bundle 'tpope/vim-vividchalk'
       endif
     " }
 
