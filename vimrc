@@ -304,6 +304,7 @@
         Bundle 'spf13/vim-colors'
         Bundle 'flazz/vim-colorschemes'
         Bundle 'romainl/apprentice'
+        Bundle 'lokaltog/vim-distinguished'
       endif
     " }
 
