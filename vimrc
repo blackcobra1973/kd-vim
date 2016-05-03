@@ -282,6 +282,7 @@
         Bundle 'osyo-manga/vim-over'
         Bundle 'gcmt/wildfire.vim'
         Bundle 'blackcobra1973/kd-vim-colors'
+        Bundle 'noahfrederick/vim-hemisu'
       endif
     " }
 
@@ -302,6 +303,7 @@
         Bundle 'altercation/vim-colors-solarized'
         Bundle 'spf13/vim-colors'
         Bundle 'flazz/vim-colorschemes'
+        Bundle 'romainl/apprentice'
       endif
     " }
 
@@ -457,13 +459,14 @@
     " Asciidoc {
       if count(g:kd_bundle_groups, 'asciidoc')
         Bundle 'blackcobra1973/asciidoc-vim'
+        "Bundle 'tpope/vim-markdown'
+        Bundle 'gabrielelana/vim-markdown'
       endif
     " }
 
     " Misc {
       if count(g:kd_bundle_groups, 'misc')
         Bundle 'rust-lang/rust.vim'
-        Bundle 'tpope/vim-markdown'
         Bundle 'spf13/vim-preview'
         Bundle 'tpope/vim-cucumber'
         Bundle 'cespare/vim-toml'
@@ -606,7 +609,8 @@ if iCanHazVundle == 0
     let g:solarized_termcolors=256
   endif
 
-  colorscheme grb256
+  "colorscheme grb256
+  colorscheme hemisu
 
   set tabpagemax=15               " Only show 15 tabs
   set modeline                    " Enable modeline (Vim settings in a file)
