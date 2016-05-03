@@ -25,7 +25,7 @@ eval $find_font_command | xargs -0 -I % cp "%" "$font_dir/"
 # Copy all fonts config to fonts directory
 echo "Copying fonts configs..."
 eval $find_conf_command -print0 | xargs -0 -I % cp "%" "$font_conf_dir/"
-eval $find_conf_command -printf '%f' | xargs -0 -I % cp $font_conf_dir/"%" /etc/fonts/conf.d/"%"
+eval $find_conf_command -printf '%f' | xargs -0 -I % ln -s $font_conf_dir/"%" /etc/fonts/conf.d/"%"
 
 # Reset font cache on Linux
 if command -v fc-cache @>/dev/null ; then
