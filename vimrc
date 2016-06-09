@@ -547,6 +547,9 @@ if iCanHazVundle == 0
   "set secure
 
   if has('clipboard')
+    if exists('$TMUX')
+      set clipboard=
+    endif
     if has('unnamedplus')  " When possible use + register for copy-paste
       set clipboard=unnamed,unnamedplus
     else " On mac and Windows, use * register for copy-paste
