@@ -661,11 +661,11 @@ if iCanHazVundle == 0
   set number                      " Line numbers on
   set showmatch                   " Show matching brackets/parenthesis
   set mat=2                       " How many tenths of a second to blink when matching brackets
-  set incsearch                   " Find as you type search
   set hlsearch                    " Highlight search terms
-  set winminheight=0              " Windows can be 0 line high
+  set incsearch                   " Find as you type search
   set ignorecase                  " Case insensitive search
   set smartcase                   " Case sensitive when uc present
+  set winminheight=0              " Windows can be 0 line high
   set wildmenu                    " Show list instead of just completing
   "set wildmode=list:longest,full  " Command <Tab> completion, list matches, then longest common part, then all.
   set wildmode=longest:full       " Command <Tab> completion, list matches, then longest common part, then all.
@@ -695,7 +695,11 @@ if iCanHazVundle == 0
 
   " Add a bit extra margin to the left
   "set foldcolumn=1
-  "set foldcolumn=3    " Fold column is three bits wide
+  "set foldcolumn=3                " Fold column is three bits wide
+  set foldenable                  "enable folds by default
+  set foldmethod=syntax           "fold via syntax of files
+  set foldlevelstart=99           "open all folds by default
+  let g:xml_syntax_folding=1      "enable xml folding
 
   " When displaying line numbers, don't use an annoyingly wide number column. This
   " doesn't enable line numbers -- :set number will do that. The value given is a
