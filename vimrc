@@ -673,7 +673,6 @@ if iCanHazVundle == 0
   "set whichwrap+=<,>,h,l          " Backspace and cursor keys wrap too
   set scrolljump=5                " Lines to scroll when cursor leaves screen
   set scrolloff=3                 " Minimum lines to keep above and below cursor
-  set foldenable                  " Auto fold code
   set list
   "set listchars=tab:›\ ,trail:•,extends:#,nbsp:. " Highlight problematic whitespace
   set listchars=tab:›\ ,extends:#,nbsp:. " Highlight problematic whitespace
@@ -696,10 +695,10 @@ if iCanHazVundle == 0
   " Add a bit extra margin to the left
   "set foldcolumn=1
   "set foldcolumn=3                " Fold column is three bits wide
-  set foldenable                  "enable folds by default
-  set foldmethod=syntax           "fold via syntax of files
-  set foldlevelstart=99           "open all folds by default
-  let g:xml_syntax_folding=1      "enable xml folding
+  set foldenable                  " Enable folds by default
+  set foldmethod=syntax           " Fold via syntax of files
+  set foldlevelstart=99           " Open all folds by default
+  let g:xml_syntax_folding=1      " Enable xml folding
 
   " When displaying line numbers, don't use an annoyingly wide number column. This
   " doesn't enable line numbers -- :set number will do that. The value given is a
