@@ -3,32 +3,25 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.0.5 - 2016-05-03
+"       2.0.6 - 2016-06-09
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
 "
 " Sections:
-"     -> Vundle Install + Bundles
-"     -> General
-"     -> VIM user interface
-"     -> Colors and Fonts
-"     -> Files and backups
-"     -> Text, tab and indent related
-"     -> Visual mode related
-"     -> Moving around, tabs and buffers
-"     -> Status line
-"     -> Vim Airline
-"     -> Syntastic
-"     -> Editing mappings
-"     -> Automatically chmod +x for files starting with #! .../bin/
-"     -> Automatically compile less files
-"     -> Show what syntax is used
-"     -> Spell checking
-"     -> Misc
-"     -> Helper functions
-"     -> GUI Related
-"     -> Fast editing and reloading of vimrc configs
+"     -> Vim environment
+"     -> Vim options
+"     -> Vundle install
+"     -> Vundle bundles
+"     -> Vim general
+"     -> Vim files, backups and undo
+"     -> Vim user interface
+"     -> Vim status line
+"     -> Vim formatting
+"     -> Vim key (re)mappings
+"     -> Vim plugins configurations
+"     -> Vim GUI Settings
+"     -> Vim functions
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -217,7 +210,7 @@
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Bundles
+" => Vundle Bundles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Bundles {
   " Deps {
@@ -304,6 +297,8 @@
         Bundle 'spf13/vim-colors'
         Bundle 'flazz/vim-colorschemes'
         Bundle 'romainl/apprentice'
+        Bundle 'lokaltog/vim-distinguished'
+        Bundle 'tpope/vim-vividchalk'
       endif
     " }
 
@@ -492,7 +487,7 @@ if iCanHazVundle == 0
 " Setting up Vundle - the vim plugin bundler end
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => General
+" => Vim General
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " General {
   set background=dark         " Assume a dark background
@@ -514,6 +509,7 @@ if iCanHazVundle == 0
   syntax on                   " Syntax highlighting
   "set mouse=a                 " Automatically enable mouse usage
   "set mousehide               " Hide the mouse cursor while typing
+  set ttyfast                 " assume fast terminal connection
   scriptencoding utf-8        " Set encoding to UTF8
   set history=1000            " Sets how many lines of history VIM has to remember
   set autoread                " Set to auto read when a file is changed from the outside
@@ -551,6 +547,9 @@ if iCanHazVundle == 0
   "set secure
 
   if has('clipboard')
+    if exists('$TMUX')
+      set clipboard=
+    endif
     if has('unnamedplus')  " When possible use + register for copy-paste
       set clipboard=unnamed,unnamedplus
     else " On mac and Windows, use * register for copy-paste
@@ -564,7 +563,7 @@ if iCanHazVundle == 0
   " Setting up the directories {
 
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-    " => Files, backups and undo
+    " => Vim Files, backups and undo
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     " Turn backup off, since most stuff is in SVN, git etc anyway...
     set nobackup
@@ -595,7 +594,7 @@ if iCanHazVundle == 0
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => VIM user interface
+" => Vim user interface
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Vim UI {
 
@@ -631,7 +630,7 @@ if iCanHazVundle == 0
   endif
 
 """"""""""""""""""""""""""""""
-" => Status line
+" => Vim Status line
 """"""""""""""""""""""""""""""
   if has('statusline')
     " Always show the status line
@@ -662,11 +661,11 @@ if iCanHazVundle == 0
   set number                      " Line numbers on
   set showmatch                   " Show matching brackets/parenthesis
   set mat=2                       " How many tenths of a second to blink when matching brackets
-  set incsearch                   " Find as you type search
   set hlsearch                    " Highlight search terms
-  set winminheight=0              " Windows can be 0 line high
+  set incsearch                   " Find as you type search
   set ignorecase                  " Case insensitive search
   set smartcase                   " Case sensitive when uc present
+  set winminheight=0              " Windows can be 0 line high
   set wildmenu                    " Show list instead of just completing
   "set wildmode=list:longest,full  " Command <Tab> completion, list matches, then longest common part, then all.
   set wildmode=longest:full       " Command <Tab> completion, list matches, then longest common part, then all.
@@ -674,7 +673,6 @@ if iCanHazVundle == 0
   "set whichwrap+=<,>,h,l          " Backspace and cursor keys wrap too
   set scrolljump=5                " Lines to scroll when cursor leaves screen
   set scrolloff=3                 " Minimum lines to keep above and below cursor
-  set foldenable                  " Auto fold code
   set list
   "set listchars=tab:›\ ,trail:•,extends:#,nbsp:. " Highlight problematic whitespace
   set listchars=tab:›\ ,extends:#,nbsp:. " Highlight problematic whitespace
@@ -696,7 +694,11 @@ if iCanHazVundle == 0
 
   " Add a bit extra margin to the left
   "set foldcolumn=1
-  "set foldcolumn=3    " Fold column is three bits wide
+  "set foldcolumn=3                " Fold column is three bits wide
+  set foldenable                  " Enable folds by default
+  set foldmethod=syntax           " Fold via syntax of files
+  set foldlevelstart=99           " Open all folds by default
+  let g:xml_syntax_folding=1      " Enable xml folding
 
   " When displaying line numbers, don't use an annoyingly wide number column. This
   " doesn't enable line numbers -- :set number will do that. The value given is a
@@ -820,7 +822,7 @@ if iCanHazVundle == 0
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Key (re)Mappings
+" => Vim Key (re)Mappings
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key (re)Mappings {
 
@@ -1026,7 +1028,7 @@ if iCanHazVundle == 0
 " }
 
 """"""""""""""""""""""""""""""
-" => Plugins
+" => Vim Plugins
 """"""""""""""""""""""""""""""
 " Plugins {
 
@@ -1798,7 +1800,7 @@ if iCanHazVundle == 0
 
 
 """"""""""""""""""""""""""""""
-" => GUI Settings
+" => Vim GUI Settings
 """"""""""""""""""""""""""""""
 " GUI Settings {
 
@@ -1832,7 +1834,7 @@ if iCanHazVundle == 0
 " }
 
 """"""""""""""""""""""""""""""
-" => Functions
+" => Vim Functions
 """"""""""""""""""""""""""""""
 " Functions {
     " Initialize directories {
