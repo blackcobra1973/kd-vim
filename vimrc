@@ -509,6 +509,7 @@ if iCanHazVundle == 0
   syntax on                   " Syntax highlighting
   "set mouse=a                 " Automatically enable mouse usage
   "set mousehide               " Hide the mouse cursor while typing
+  set ttyfast                 " assume fast terminal connection
   scriptencoding utf-8        " Set encoding to UTF8
   set history=1000            " Sets how many lines of history VIM has to remember
   set autoread                " Set to auto read when a file is changed from the outside
