@@ -9,26 +9,19 @@
 "       Get this config, nice color schemes and lots of plugins!
 "
 " Sections:
-"     -> Vundle Install + Bundles
-"     -> General
-"     -> VIM user interface
-"     -> Colors and Fonts
-"     -> Files and backups
-"     -> Text, tab and indent related
-"     -> Visual mode related
-"     -> Moving around, tabs and buffers
-"     -> Status line
-"     -> Vim Airline
-"     -> Syntastic
-"     -> Editing mappings
-"     -> Automatically chmod +x for files starting with #! .../bin/
-"     -> Automatically compile less files
-"     -> Show what syntax is used
-"     -> Spell checking
-"     -> Misc
-"     -> Helper functions
-"     -> GUI Related
-"     -> Fast editing and reloading of vimrc configs
+"     -> Vim environment
+"     -> Vim options
+"     -> Vundle install
+"     -> Vundle bundles
+"     -> Vim general
+"     -> Vim files, backups and undo
+"     -> Vim user interface
+"     -> Vim status line
+"     -> Vim formatting
+"     -> Vim key (re)mappings
+"     -> Vim plugins configurations
+"     -> Vim GUI Settings
+"     -> Vim functions
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -217,7 +210,7 @@
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Bundles
+" => Vundle Bundles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Bundles {
   " Deps {
@@ -494,7 +487,7 @@ if iCanHazVundle == 0
 " Setting up Vundle - the vim plugin bundler end
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => General
+" => Vim General
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " General {
   set background=dark         " Assume a dark background
@@ -566,7 +559,7 @@ if iCanHazVundle == 0
   " Setting up the directories {
 
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-    " => Files, backups and undo
+    " => Vim Files, backups and undo
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     " Turn backup off, since most stuff is in SVN, git etc anyway...
     set nobackup
@@ -597,7 +590,7 @@ if iCanHazVundle == 0
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => VIM user interface
+" => Vim user interface
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Vim UI {
 
@@ -633,7 +626,7 @@ if iCanHazVundle == 0
   endif
 
 """"""""""""""""""""""""""""""
-" => Status line
+" => Vim Status line
 """"""""""""""""""""""""""""""
   if has('statusline')
     " Always show the status line
@@ -822,7 +815,7 @@ if iCanHazVundle == 0
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Key (re)Mappings
+" => Vim Key (re)Mappings
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key (re)Mappings {
 
@@ -1028,7 +1021,7 @@ if iCanHazVundle == 0
 " }
 
 """"""""""""""""""""""""""""""
-" => Plugins
+" => Vim Plugins
 """"""""""""""""""""""""""""""
 " Plugins {
 
@@ -1800,7 +1793,7 @@ if iCanHazVundle == 0
 
 
 """"""""""""""""""""""""""""""
-" => GUI Settings
+" => Vim GUI Settings
 """"""""""""""""""""""""""""""
 " GUI Settings {
 
@@ -1834,7 +1827,7 @@ if iCanHazVundle == 0
 " }
 
 """"""""""""""""""""""""""""""
-" => Functions
+" => Vim Functions
 """"""""""""""""""""""""""""""
 " Functions {
     " Initialize directories {
