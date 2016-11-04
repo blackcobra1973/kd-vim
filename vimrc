@@ -264,7 +264,7 @@
         elseif exists('g:kd_use_powerline') && exists('g:kd_use_old_powerline')
           Bundle 'Lokaltog/vim-powerline'
         elseif exists('g:kd_use_lightline')
-          Bundle 'itchyny/lightline'
+          Bundle 'itchyny/lightline.vim'
         else
           Bundle 'vim-airline/vim-airline'
           Bundle 'vim-airline/vim-airline-themes'
