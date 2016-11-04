@@ -278,6 +278,7 @@
         Bundle 'gcmt/wildfire.vim'
         Bundle 'blackcobra1973/kd-vim-colors'
         Bundle 'noahfrederick/vim-hemisu'
+        Bundle 'sjl/badwolf'
       endif
     " }
 
@@ -617,9 +618,15 @@ if iCanHazVundle == 0
     let g:solarized_termcolors=256
   endif
 
-  "colorscheme grb256
-  "colorscheme hemisu
-  colorscheme Tomorrow-Night-Bright
+  " Add possibility to define the colorsheme in the .vimrc.before.local file
+  " Example: let g:kd_colorscheme = 'badwolf'
+  if !exists('g:kd_colorscheme')
+    "colorscheme grb256
+    "colorscheme hemisu
+    colorscheme Tomorrow-Night-Bright
+  else
+    exec 'colorscheme ' . g:kd_colorscheme
+  endif
 
   set tabpagemax=15               " Only show 15 tabs
   set modeline                    " Enable modeline (Vim settings in a file)
