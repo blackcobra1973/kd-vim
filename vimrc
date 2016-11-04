@@ -439,6 +439,13 @@
       endif
     " }
 
+    " Git {
+      if count(g:kd_bundle_groups, 'gitonly')
+        " Disable vim-signify before using this one
+        Bundle 'airblade/vim-gitgutter'
+      endif
+    " }
+
     " Elixir {
       if count(g:kd_bundle_groups, 'elixir')
         Bundle 'elixir-lang/vim-elixir'
