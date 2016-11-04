@@ -466,6 +466,7 @@
         Bundle 'blackcobra1973/asciidoc-vim'
         "Bundle 'tpope/vim-markdown'
         Bundle 'gabrielelana/vim-markdown'
+        "Bundle 'dhruvasagar/vim-table-mode'
       endif
     " }
 
@@ -1727,6 +1728,16 @@ if iCanHazVundle == 0
           \ "html,xml" : ["at"],
           \ }
       endif
+    " }
+
+    " vim Table mode {
+      if isdirectory(expand("~/.vim/bundle/vim-table-mode/"))
+
+        " For Markdown-compatible tables use
+        let g:table_mode_corner="|"
+
+      endif
+
     " }
 
     " lightline {
