@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.0.6 - 2016-06-09
+"       2.0.7 - 2016-11-04
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -263,6 +263,8 @@
           Bundle 'Lokaltog/powerline', {'rtp':'/powerline/bindings/vim'}
         elseif exists('g:kd_use_powerline') && exists('g:kd_use_old_powerline')
           Bundle 'Lokaltog/vim-powerline'
+        elseif exists('g:kd_use_lightline')
+          Bundle 'itchyny/lightline.vim'
         else
           Bundle 'vim-airline/vim-airline'
           Bundle 'vim-airline/vim-airline-themes'
@@ -276,6 +278,7 @@
         Bundle 'gcmt/wildfire.vim'
         Bundle 'blackcobra1973/kd-vim-colors'
         Bundle 'noahfrederick/vim-hemisu'
+        Bundle 'sjl/badwolf'
       endif
     " }
 
@@ -437,6 +440,13 @@
       endif
     " }
 
+    " Git {
+      if count(g:kd_bundle_groups, 'gitonly')
+        " Disable vim-signify before using this one
+        Bundle 'airblade/vim-gitgutter'
+      endif
+    " }
+
     " Elixir {
       if count(g:kd_bundle_groups, 'elixir')
         Bundle 'elixir-lang/vim-elixir'
@@ -456,6 +466,7 @@
         Bundle 'blackcobra1973/asciidoc-vim'
         "Bundle 'tpope/vim-markdown'
         Bundle 'gabrielelana/vim-markdown'
+        "Bundle 'dhruvasagar/vim-table-mode'
       endif
     " }
 
@@ -608,8 +619,15 @@ if iCanHazVundle == 0
     let g:solarized_termcolors=256
   endif
 
-  "colorscheme grb256
-  colorscheme hemisu
+  " Add possibility to define the colorsheme in the .vimrc.before.local file
+  " Example: let g:kd_colorscheme = 'badwolf'
+  if !exists('g:kd_colorscheme')
+    "colorscheme grb256
+    "colorscheme hemisu
+    colorscheme Tomorrow-Night-Bright
+  else
+    exec 'colorscheme ' . g:kd_colorscheme
+  endif
 
   set tabpagemax=15               " Only show 15 tabs
   set modeline                    " Enable modeline (Vim settings in a file)
@@ -722,7 +740,8 @@ if iCanHazVundle == 0
 " Formatting {
   set nowrap                      " Do not wrap long lines
   "set wrap "Wrap lines
-  "set autoindent                  " Indent at the same level of the previous line
+  set smartindent
+  set autoindent                  " Indent at the same level of the previous line
   set shiftwidth=2                " Use indents of 2 spaces
   set expandtab                   " Tabs are spaces, not tabs
   set tabstop=2                   " An indentation every four columns
@@ -857,6 +876,9 @@ if iCanHazVundle == 0
   else
     let s:kd_apply_config_mapping = g:kd_apply_config_mapping
   endif
+
+  " Reload vimrc without restart editor ( Breaks toolbar)
+  " map <leader>se :source ~/.vimrc<CR>
 
   " Easier moving in tabs and windows
   " The lines conflict with the default digraph mapping of <C-K>
@@ -1706,6 +1728,84 @@ if iCanHazVundle == 0
           \ "html,xml" : ["at"],
           \ }
       endif
+    " }
+
+    " vim Table mode {
+      if isdirectory(expand("~/.vim/bundle/vim-table-mode/"))
+
+        " For Markdown-compatible tables use
+        let g:table_mode_corner="|"
+
+      endif
+
+    " }
+
+    " lightline {
+        " Set configuration options for lightline plugin.
+
+        if isdirectory(expand("~/.vim/bundle/lightline.vim/"))
+
+          let g:lightline = {
+                \ 'colorscheme': 'powerline',
+                \ 'mode_map': { 'c': 'NORMAL' },
+                \ 'active': {
+                \   'left': [ [ 'mode', 'paste' ], [ 'fugitive', 'filename' ] ]
+                \ },
+                \ 'component_function': {
+                \   'modified': 'LightlineModified',
+                \   'readonly': 'LightlineReadonly',
+                \   'fugitive': 'LightlineFugitive',
+                \   'filename': 'LightlineFilename',
+                \   'fileformat': 'LightlineFileformat',
+                \   'filetype': 'LightlineFiletype',
+                \   'fileencoding': 'LightlineFileencoding',
+                \   'mode': 'LightlineMode',
+                \ },
+                \ 'separator': { 'left': '', 'right': '' },
+                \ 'subseparator': { 'left': '', 'right': '' }
+                \ }
+
+          function! LightlineModified()
+            return &ft =~ 'help\|vimfiler\|gundo' ? '' : &modified ? '+' : &modifiable ? '' : '-'
+          endfunction
+
+          function! LightlineReadonly()
+            return &ft !~? 'help\|vimfiler\|gundo' && &readonly ? '' : ''
+          endfunction
+
+          function! LightlineFilename()
+            return ('' != LightlineReadonly() ? LightlineReadonly() . ' ' : '') .
+                  \ (&ft == 'vimfiler' ? vimfiler#get_status_string() :
+                  \  &ft == 'unite' ? unite#get_status_string() :
+                  \  &ft == 'vimshell' ? vimshell#get_status_string() :
+                  \ '' != expand('%:t') ? expand('%:t') : '[No Name]') .
+                  \ ('' != LightlineModified() ? ' ' . LightlineModified() : '')
+          endfunction
+
+          function! LightlineFugitive()
+            if &ft !~? 'vimfiler\|gundo' && exists("*fugitive#head")
+              let branch = fugitive#head()
+              return branch !=# '' ? '⎇ '.branch : ''
+            endif
+            return ''
+          endfunction
+
+          function! LightlineFileformat()
+            return winwidth(0) > 70 ? &fileformat : ''
+          endfunction
+
+          function! LightlineFiletype()
+            return winwidth(0) > 70 ? (&filetype !=# '' ? &filetype : 'no ft') : ''
+          endfunction
+
+          function! LightlineFileencoding()
+            return winwidth(0) > 70 ? (&fenc !=# '' ? &fenc : &enc) : ''
+          endfunction
+
+          function! LightlineMode()
+            return winwidth(0) > 60 ? lightline#mode() : ''
+          endfunction
+        endif
     " }
 
     " vim-airline {
