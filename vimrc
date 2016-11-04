@@ -859,6 +859,9 @@ if iCanHazVundle == 0
     let s:kd_apply_config_mapping = g:kd_apply_config_mapping
   endif
 
+  " Reload vimrc without restart editor ( Breaks toolbar)
+  " map <leader>se :source ~/.vimrc<CR>
+
   " Easier moving in tabs and windows
   " The lines conflict with the default digraph mapping of <C-K>
   " If you prefer that functionality, add the following to your
