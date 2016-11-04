@@ -609,7 +609,8 @@ if iCanHazVundle == 0
   endif
 
   "colorscheme grb256
-  colorscheme hemisu
+  "colorscheme hemisu
+  colorscheme Tomorrow-Night-Bright
 
   set tabpagemax=15               " Only show 15 tabs
   set modeline                    " Enable modeline (Vim settings in a file)
