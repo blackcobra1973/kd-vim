@@ -740,8 +740,8 @@ if iCanHazVundle == 0
 " Formatting {
   set nowrap                      " Do not wrap long lines
   "set wrap "Wrap lines
-  set smartindent
-  set autoindent                  " Indent at the same level of the previous line
+  "set smartindent
+  "set autoindent                  " Indent at the same level of the previous line
   set shiftwidth=2                " Use indents of 2 spaces
   set expandtab                   " Tabs are spaces, not tabs
   set tabstop=2                   " An indentation every four columns
