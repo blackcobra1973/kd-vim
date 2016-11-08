@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.0.7 - 2016-11-04
+"       2.0.7.1 - 2016-11-08
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
