@@ -231,7 +231,7 @@
   " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if !exists('g:kd_bundle_groups')
-      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'puppet', 'docker', 'javascript', 'html', 'misc',]
+      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'puppet', 'ansible', 'docker', 'javascript', 'html', 'misc',]
 
   endif
 
@@ -424,6 +424,12 @@
         let g:rubycomplete_buffer_loading = 1
         "let g:rubycomplete_classes_in_global = 1
         "let g:rubycomplete_rails = 1
+      endif
+    " }
+
+    " Ansible {
+      if count(g:kd_bundle_groups, 'ansible')
+        Bundle 'pearofducks/ansible-vim'
       endif
     " }
 
