@@ -410,7 +410,7 @@
 
     " HTML {
       if count(g:kd_bundle_groups, 'html')
-        Bundle 'amirh/HTML-AutoCloseTag'
+        Bundle 'vim-scripts/HTML-AutoCloseTag'
         Bundle 'hail2u/vim-css3-syntax'
         Bundle 'gorodinskiy/vim-coloresque'
         Bundle 'tpope/vim-haml'
