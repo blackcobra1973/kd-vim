@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.0.7.1 - 2016-11-08
+"       2.0.7.2 - 2017-01-02
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -410,7 +410,7 @@
 
     " HTML {
       if count(g:kd_bundle_groups, 'html')
-        Bundle 'amirh/HTML-AutoCloseTag'
+        Bundle 'vim-scripts/HTML-AutoCloseTag'
         Bundle 'hail2u/vim-css3-syntax'
         Bundle 'gorodinskiy/vim-coloresque'
         Bundle 'tpope/vim-haml'
