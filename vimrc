@@ -317,7 +317,7 @@
     " General Programming {
       if count(g:kd_bundle_groups, 'programming')
         " Pick one of the checksyntax, jslint, or syntastic
-        Bundle 'scrooloose/syntastic'
+        Bundle 'vim-syntastic/syntastic'
         Bundle 'tpope/vim-fugitive'
         Bundle 'gregsexton/gitv'
         Bundle 'mattn/webapi-vim'
