@@ -1,0 +1,10 @@
+"let g:kd_use_powerline = 1
+"let g:kd_use_old_powerline = 1
+let g:airline_powerline_fonts=1
+let g:kd_use_lightline = 1
+let g:kd_colorscheme = 'grb256'
+"let g:kd_colorscheme = 'hemisu'
+"let g:kd_colorscheme = 'Tomorrow-Night-Bright'
+"let g:kd_colorscheme = 'Tomorrow-Night-Eighties'
+"let g:kd_colorscheme = 'Tomorrow-Night'
+"let g:kd_colorscheme = 'badwolf'
