@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.0.7.2 - 2017-01-02
+"       2.0.7.3 - 2017-05-01
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -1669,6 +1669,12 @@ if iCanHazVundle == 0
 
     " Gundo {
         if isdirectory(expand("~/.vim/bundle/gundo.vim/"))
+          if has("python3")
+            let g:gundo_prefer_python3 = 1
+          elseif !has("python")
+            call janus#disable_plugin("gundo", s:no_python_support)
+          endif
+
           if version >= 703
             nnoremap <F5> :GundoToggle<CR>
           endif
