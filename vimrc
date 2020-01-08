@@ -263,6 +263,7 @@
           Bundle 'Lokaltog/powerline', {'rtp':'/powerline/bindings/vim'}
         elseif exists('g:kd_use_powerline') && exists('g:kd_use_old_powerline')
           Bundle 'Lokaltog/vim-powerline'
+          Bundle 'ryanoasis/vim-devicons'
         elseif exists('g:kd_use_lightline')
           Bundle 'itchyny/lightline.vim'
         else
@@ -745,7 +746,7 @@ if iCanHazVundle == 0
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Formatting {
   set nowrap                      " Do not wrap long lines
-  "set wrap "Wrap lines
+  "set wrap                        "Wrap lines
   "set smartindent
   "set autoindent                  " Indent at the same level of the previous line
   set shiftwidth=2                " Use indents of 2 spaces
@@ -757,7 +758,6 @@ if iCanHazVundle == 0
   set splitright                  " Puts new vsplit windows to the right of the current
   set splitbelow                  " Puts new split windows to the bottom of the current
   "set matchpairs+=<:>             " Match, to be used with %
-  "set pastetoggle=<F12>           " pastetoggle (sane indentation on pastes)
   set pastetoggle=<F2>            " pastetoggle (sane indentation on pastes)
   "set comments=sl:/*,mb:*,elx:*/  " auto format comment blocks
 
