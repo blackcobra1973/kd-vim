@@ -266,6 +266,8 @@
           Bundle 'ryanoasis/vim-devicons'
         elseif exists('g:kd_use_lightline')
           Bundle 'itchyny/lightline.vim'
+        elseif exists('g:kd_use_agnoster')
+          Bundle 'i5ar/vim-agnoster-statusline'
         else
           Bundle 'vim-airline/vim-airline'
           Bundle 'vim-airline/vim-airline-themes'
