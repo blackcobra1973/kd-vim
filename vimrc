@@ -231,7 +231,7 @@
   " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if !exists('g:kd_bundle_groups')
-      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'ansible', 'docker', 'javascript', 'html', 'misc',]
+      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'github', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
 
   endif
 
@@ -453,6 +453,14 @@
       if count(g:kd_bundle_groups, 'gitonly')
         " Disable vim-signify before using this one
         Bundle 'airblade/vim-gitgutter'
+      endif
+    " }
+
+    " Github {
+      if count(g:kd_bundle_groups, 'github')
+        " Disable vim-signify before using this one
+        #Bundle 'yasuhiroki/github-actions-yaml.vim'
+        Bundle 'matsub/github-actions.vim'
       endif
     " }
 
