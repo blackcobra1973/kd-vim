@@ -774,7 +774,6 @@ if iCanHazVundle == 0
   " To disable the stripping of whitespace, add the following to your
   " .vimrc.before.local file:
   "   let g:kd_keep_trailing_whitespace = 1
-  au BufNewFile,BufReadPost */.github/workflows/*.y{a,}ml setlocal filetype=yaml.gha
   autocmd FileType c,cpp,java,go,php,javascript,puppet,python,rust,twig,xml,yml,perl,sql autocmd BufWritePre <buffer> if !exists('g:kd_keep_trailing_whitespace') | call StripTrailingWhitespace() | endif
   "autocmd FileType go autocmd BufWritePre <buffer> Fmt
   autocmd BufNewFile,BufRead *.html.twig set filetype=html.twig
