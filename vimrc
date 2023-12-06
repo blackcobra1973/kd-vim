@@ -459,7 +459,7 @@
     " Github {
       if count(g:kd_bundle_groups, 'github')
         "Bundle 'yasuhiroki/github-actions-yaml.vim'
-        Bundle 'matsub/github-actions.vim'
+        Bundle 'blackcobra1973/github-actions.vim'
       endif
     " }
 
