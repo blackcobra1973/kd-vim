@@ -458,8 +458,7 @@
 
     " Github {
       if count(g:kd_bundle_groups, 'github')
-        " Disable vim-signify before using this one
-        #Bundle 'yasuhiroki/github-actions-yaml.vim'
+        "Bundle 'yasuhiroki/github-actions-yaml.vim'
         Bundle 'matsub/github-actions.vim'
       endif
     " }
