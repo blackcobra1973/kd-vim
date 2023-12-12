@@ -566,6 +566,13 @@ if iCanHazVundle == 0
   " set it to the first line when editing a git commit message
   au FileType gitcommit au! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
 
+  let g:copilot_filetypes = {
+       \ '*': v:false,
+       \ 'python': v:true,
+       \ 'markdown': v:true,
+       \ 'yaml': v:true,
+       \ }
+
   " Enable filetype plugins
   "filetype plugin on
   "filetype indent on
