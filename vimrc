@@ -458,8 +458,9 @@
 
     " Github {
       if count(g:kd_bundle_groups, 'github')
-        Bundle 'yasuhiroki/github-actions-yaml.vim'
+        "Bundle 'yasuhiroki/github-actions-yaml.vim'
         "Bundle 'blackcobra1973/github-actions.vim'
+        Bundle 'github.com/github/copilot.vim'
       endif
     " }
 
