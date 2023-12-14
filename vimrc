@@ -231,7 +231,7 @@
   " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if !exists('g:kd_bundle_groups')
-      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'github', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
 
   endif
 
