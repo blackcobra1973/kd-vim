@@ -50,7 +50,7 @@
     endif
   " }
 
-  " Windows Compatible {
+
     " On Windows, also use '.vim' instead of 'vimfiles'; this makes synchronization
     " across (heterogeneous) systems easier.
     if WINDOWS()
@@ -571,6 +571,7 @@ if iCanHazVundle == 0
        \ 'python': v:true,
        \ 'markdown': v:true,
        \ 'yaml': v:true,
+       \ 'vim': v:true,
        \ }
 
   " Enable filetype plugins
