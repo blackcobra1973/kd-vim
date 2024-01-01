@@ -231,7 +231,7 @@
   " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if !exists('g:kd_bundle_groups')
-      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'asciidoc', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+      let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
 
   endif
 
@@ -481,6 +481,11 @@
     " Asciidoc {
       if count(g:kd_bundle_groups, 'asciidoc')
         Bundle 'blackcobra1973/asciidoc-vim'
+      endif
+    " }
+
+    " Markdown {
+      if count(g:kd_bundle_groups, 'markdown')
         "Bundle 'tpope/vim-markdown'
         Bundle 'gabrielelana/vim-markdown'
         "Bundle 'dhruvasagar/vim-table-mode'

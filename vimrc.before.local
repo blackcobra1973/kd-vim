@@ -1,5 +1,5 @@
 " Standard with github Copilot plugin
-"let g:kd_bundle_groups=['general', 'programming', 'asciidoc', 'ruby', 'github', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+"let g:kd_bundle_groups=['general', 'programming', 'ruby', 'github', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
 
 "let g:kd_use_powerline = 1
 "let g:kd_use_old_powerline = 1
