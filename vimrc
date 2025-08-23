@@ -1206,7 +1206,7 @@ if iCanHazVundle == 0
         " enables/disables full markdown highlighting in aichat files
         " NOTE: code syntax highlighting works out of the box without this option enabled
         " NOTE: highlighting may be corrupted when using together with the `preservim/vim-markdown`
-        g:vim_ai_chat_markdown = 0
+        let g:vim_ai_chat_markdown = 0
 
         " debug settings
         let g:vim_ai_debug = 0
