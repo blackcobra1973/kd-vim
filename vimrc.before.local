@@ -1,5 +1,17 @@
-" Standard with github Copilot plugin
-"let g:kd_bundle_groups=['general', 'programming', 'ruby', 'github', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+" Standard with Github Copilot plugin
+"let g:kd_bundle_groups=['general', 'programming', 'ruby', 'github_copilot', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+" Standard with Google Gemini plugin
+"let g:kd_bundle_groups=['general', 'programming', 'ruby', 'google_gemini', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+
+" Config settings for Google Gemini plugin
+" Custom roles file location
+" Example: let g:vim_ai_roles_config_file = s:plugin_root . "/roles-example.ini"
+"let g:vim_ai_roles_config_file = '~/.vim/gemini-roles.ini'
+" custom token file location
+" save api key to `~/.config/gemini.token` file
+"   echo "YOUR_OPENAI_API_KEY" > ~/.config/gemini.token
+"let g:vim_ai_token_file_path = '~/.config/gemini.token'
+
 
 "let g:kd_use_powerline = 1
 "let g:kd_use_old_powerline = 1

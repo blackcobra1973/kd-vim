@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.0.7.3 - 2017-05-01
+"       2.0.7.7 - 2025-08-18
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -456,11 +456,18 @@
       endif
     " }
 
-    " Github {
-      if count(g:kd_bundle_groups, 'github')
+    " Github Copilot {
+      if count(g:kd_bundle_groups, 'github_copilot')
         "Bundle 'yasuhiroki/github-actions-yaml.vim'
         "Bundle 'blackcobra1973/github-actions.vim'
         Bundle 'github/copilot.vim'
+      endif
+    " }
+
+    " Google Gemini {
+      if count(g:kd_bundle_groups, 'google_gemini')
+        Bundle 'madox2/vim-ai'
+        Bundle 'madox2/vim-ai-provider-google'
       endif
     " }
 
@@ -571,6 +578,7 @@ if iCanHazVundle == 0
   " set it to the first line when editing a git commit message
   au FileType gitcommit au! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
 
+  " Enable GitHub Copilot for specific filetypes
   let g:copilot_filetypes = {
        \ '*': v:false,
        \ 'python': v:true,
