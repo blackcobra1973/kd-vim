@@ -1112,47 +1112,47 @@ if iCanHazVundle == 0
         " - provider: AI provider
         " - prompt: optional prepended prompt
         " - ui.paste_mode: use paste mode (see more info in the Notes below)
-        let g:vim_ai_complete = {
-        \  "provider": "google",
-        \  "prompt": "",
-        \  "options": {
-        \    "model": "gemini-2.5-pro",
-        \    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
-        \    "request_timeout": 20,
-        \    "token_file_path": "",
-        \    "token_load_fn": "",
-        \    "temperature": 1.0,
-        \    "max_output_tokens": 800,
-        \    "top_p": 0.8,
-        \    "top_k": 40,
-        \  },
-        \  "ui": {
-        \    "paste_mode": 1,
-        \  },
-        \}
+        "let g:vim_ai_complete = {
+        "\  "provider": "google",
+        "\  "prompt": "",
+        "\  "options": {
+        "\    "model": "gemini-2.5-pro",
+        "\    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
+        "\    "request_timeout": 20,
+        "\    "token_file_path": "",
+        "\    "token_load_fn": "",
+        "\    "temperature": 1.0,
+        "\    "max_output_tokens": 800,
+        "\    "top_p": 0.8,
+        "\    "top_k": 40,
+        "\  },
+        "\  "ui": {
+        "\    "paste_mode": 1,
+        "\  },
+        "\}
 
         " :AIEdit
         " - provider: AI provider
         " - prompt: optional prepended prompt
         " - ui.paste_mode: use paste mode (see more info in the Notes below)
-        let g:vim_ai_edit = {
-        \  "provider": "google",
-        \  "prompt": "",
-        \  "options": {
-        \    "model": "gemini-2.5-flash",
-        \    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
-        \    "request_timeout": 20,
-        \    "token_file_path": "",
-        \    "token_load_fn": "",
-        \    "temperature": 1.0,
-        \    "max_output_tokens": 800,
-        \    "top_p": 0.8,
-        \    "top_k": 40,
-        \  },
-        \  "ui": {
-        \    "paste_mode": 1,
-        \  },
-        \}
+        "let g:vim_ai_edit = {
+        "\  "provider": "google",
+        "\  "prompt": "",
+        "\  "options": {
+        "\    "model": "gemini-2.5-flash",
+        "\    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
+        "\    "request_timeout": 20,
+        "\    "token_file_path": "",
+        "\    "token_load_fn": "",
+        "\    "temperature": 1.0,
+        "\    "max_output_tokens": 800,
+        "\    "top_p": 0.8,
+        "\    "top_k": 40,
+        "\  },
+        "\  "ui": {
+        "\    "paste_mode": 1,
+        "\  },
+        "\}
 
         " This prompt instructs model to work with syntax highlighting
         let s:initial_chat_prompt =<< trim END
@@ -1166,33 +1166,34 @@ if iCanHazVundle == 0
         " - provider: AI provider
         " - prompt: optional prepended prompt
         " - ui.paste_mode: use paste mode (see more info in the Notes below)
-        let g:vim_ai_chat = {
-        \  "provider": "google",
-        \  "prompt": "",
-        \  "options": {
-        \    "model": "gemini-2.5-flash",
-        \    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
-        \    "request_timeout": 20,
-        \    "initial_prompt": s:initial_chat_prompt,
-        \    "token_file_path": "",
-        \    "token_load_fn": "",
-        \    "temperature": 1.0,
-        \    "max_output_tokens": 800,
-        \    "top_p": 0.8,
-        \    "top_k": 40,
-        \  },
-        \  "ui": {
-        \    "open_chat_command": "preset_below",
-        \    "scratch_buffer_keep_open": 0,
-        \    "populate_options": 0,
-        \    "populate_all_options": 0,
-        \    "force_new_chat": 0,
-        \    "paste_mode": 1,
-        \  },
-        \}
+        "let g:vim_ai_chat = {
+        "\  "provider": "google",
+        "\  "prompt": "",
+        "\  "options": {
+        "\    "model": "gemini-2.5-flash",
+        "\    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
+        "\    "request_timeout": 20,
+        "\    "initial_prompt": s:initial_chat_prompt,
+        "\    "token_file_path": "",
+        "\    "token_load_fn": "",
+        "\    "temperature": 1.0,
+        "\    "max_output_tokens": 800,
+        "\    "top_p": 0.8,
+        "\    "top_k": 40,
+        "\  },
+        "\  "ui": {
+        "\    "open_chat_command": "preset_below",
+        "\    "scratch_buffer_keep_open": 0,
+        "\    "populate_options": 0,
+        "\    "populate_all_options": 0,
+        "\    "force_new_chat": 0,
+        "\    "paste_mode": 1,
+        "\  },
+        "\}
 
         " custom roles file location
         "let g:vim_ai_roles_config_file = s:plugin_root . "/roles-example.ini"
+        let g:vim_ai_roles_config_file = '~/.vim/gemini-roles.ini'
 
         " custom token file location
         "let g:vim_ai_token_file_path = "~/.config/openai.token"
