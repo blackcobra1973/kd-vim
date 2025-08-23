@@ -5,7 +5,6 @@
 
 " Config settings for Google Gemini plugin
 " Custom roles file location
-" Example: let g:vim_ai_roles_config_file = s:plugin_root . "/roles-example.ini"
 "let g:vim_ai_roles_config_file = '~/.vim/gemini-roles.ini'
 " custom token file location
 " save api key to `~/.config/gemini.token` file

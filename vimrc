@@ -578,15 +578,6 @@ if iCanHazVundle == 0
   " set it to the first line when editing a git commit message
   au FileType gitcommit au! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
 
-  " Enable GitHub Copilot for specific filetypes
-  let g:copilot_filetypes = {
-       \ '*': v:false,
-       \ 'python': v:true,
-       \ 'markdown': v:true,
-       \ 'yaml': v:true,
-       \ 'vim': v:true,
-       \ }
-
   " Enable filetype plugins
   "filetype plugin on
   "filetype indent on
@@ -1090,6 +1081,152 @@ if iCanHazVundle == 0
 " => Vim Plugins
 """"""""""""""""""""""""""""""
 " Plugins {
+
+    " Github Copilot {
+      if count(g:kd_bundle_groups, 'github_copilot')
+        " Enable GitHub Copilot for specific filetypes
+        let g:copilot_filetypes = {
+             \ '*': v:false,
+             \ 'python': v:true,
+             \ 'markdown': v:true,
+             \ 'yaml': v:true,
+             \ 'vim': v:true,
+             \ }
+      endif
+    " }
+
+    " Google Gemini {
+      if count(g:kd_bundle_groups, 'google_gemini')
+
+        " This prompt instructs model to be consise in order to be used inline in editor
+        let s:initial_complete_prompt =<< trim END
+        >>> system
+
+        You are a general assistant.
+        Answer shortly, consisely and only what you are asked.
+        Do not provide any explanantion or comments if not requested.
+        If you answer in a code, do not wrap it in markdown code block.
+        END
+
+        " :AI
+        " - provider: AI provider
+        " - prompt: optional prepended prompt
+        " - ui.paste_mode: use paste mode (see more info in the Notes below)
+        let g:vim_ai_complete = {
+        \  "provider": "google",
+        \  "prompt": "",
+        \  "options": {
+        \    "model": "gemini-2.5-pro",
+        \    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
+        \    "request_timeout": 20,
+        \    "token_file_path": "",
+        \    "token_load_fn": "",
+        \    "temperature": 1.0,
+        \    "max_output_tokens": 800,
+        \    "top_p": 0.8,
+        \    "top_k": 40,
+        \  },
+        \  "ui": {
+        \    "paste_mode": 1,
+        \  },
+        \}
+
+        " :AIEdit
+        " - provider: AI provider
+        " - prompt: optional prepended prompt
+        " - ui.paste_mode: use paste mode (see more info in the Notes below)
+        let g:vim_ai_edit = {
+        \  "provider": "google",
+        \  "prompt": "",
+        \  "options": {
+        \    "model": "gemini-2.5-flash",
+        \    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
+        \    "request_timeout": 20,
+        \    "token_file_path": "",
+        \    "token_load_fn": "",
+        \    "temperature": 1.0,
+        \    "max_output_tokens": 800,
+        \    "top_p": 0.8,
+        \    "top_k": 40,
+        \  },
+        \  "ui": {
+        \    "paste_mode": 1,
+        \  },
+        \}
+
+        " This prompt instructs model to work with syntax highlighting
+        let s:initial_chat_prompt =<< trim END
+        >>> system
+
+        You are a general assistant.
+        If you attach a code block add syntax type after ``` to enable syntax highlighting.
+        END
+
+        " :AIChat
+        " - provider: AI provider
+        " - prompt: optional prepended prompt
+        " - ui.paste_mode: use paste mode (see more info in the Notes below)
+        let g:vim_ai_chat = {
+        \  "provider": "google",
+        \  "prompt": "",
+        \  "options": {
+        \    "model": "gemini-2.5-flash",
+        \    "endpoint_url": "https://api.generativeai.google.com/v1beta2/models",
+        \    "request_timeout": 20,
+        \    "initial_prompt": s:initial_chat_prompt,
+        \    "token_file_path": "",
+        \    "token_load_fn": "",
+        \    "temperature": 1.0,
+        \    "max_output_tokens": 800,
+        \    "top_p": 0.8,
+        \    "top_k": 40,
+        \  },
+        \  "ui": {
+        \    "open_chat_command": "preset_below",
+        \    "scratch_buffer_keep_open": 0,
+        \    "populate_options": 0,
+        \    "populate_all_options": 0,
+        \    "force_new_chat": 0,
+        \    "paste_mode": 1,
+        \  },
+        \}
+
+        " custom roles file location
+        "let g:vim_ai_roles_config_file = s:plugin_root . "/roles-example.ini"
+
+        " custom token file location
+        "let g:vim_ai_token_file_path = "~/.config/openai.token"
+
+        " custom fn to load token, e.g. "g:GetAIToken()"
+        let g:vim_ai_token_load_fn = ""
+
+        " enable/disable asynchronous AIChat (enabled by default)
+        let g:vim_ai_async_chat = 1
+
+        " enables/disables full markdown highlighting in aichat files
+        " NOTE: code syntax highlighting works out of the box without this option enabled
+        " NOTE: highlighting may be corrupted when using together with the `preservim/vim-markdown`
+        g:vim_ai_chat_markdown = 0
+
+        " debug settings
+        let g:vim_ai_debug = 0
+        let g:vim_ai_debug_log_file = "/tmp/vim_ai_debug.log"
+
+        " Notes:
+        " ui.paste_mode
+        " - if disabled code indentation will work but AI doesn't always respond with a code block
+        "   therefore it could be messed up
+        " - find out more in vim's help `:help paste`
+        " options.max_tokens
+        " - note that prompt + max_tokens must be less than model's token limit, see #42, #46
+        " - setting max tokens to "" will exclude it from the OpenAI API request parameters, it is
+        "   unclear/undocumented what it exactly does, but it seems to resolve issues when the model
+        "   hits token limit, which respond with `OpenAI: HTTPError 400`
+        " options.selection_boundary
+        " - setting ``` value behaves in markdown-like fasion - adds filetype to the boundary
+
+      endif
+    " }
 
     " GoLang {
         if count(g:kd_bundle_groups, 'go')
