@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Reminder hook: runs when Git creates a merge commit locally (git merge).
+# Useful if your repo prefers a linear history via squash merges on GitHub.
+
+echo "ℹ️  You are creating a local merge commit."
+echo "   This repo prefers PR-based merges into 'main' (usually Squash & Merge)."
+echo "   If you intended to integrate from main, consider: git rebase origin/main"
+echo ""
+exit 0

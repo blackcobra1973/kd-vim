@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Prevent accidental direct pushes to protected branches (default: main).
+# Customize the list below if you also protect release/*, production, etc.
+
+protected_branches=("main")
+
+# Git passes remote-name and remote-url as arguments ($1, $2), and refs on stdin:
+# each stdin line has the form: <local ref> <local sha1> <remote ref> <remote sha1>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # remote_ref looks like: refs/heads/main
+  branch="${remote_ref#refs/heads/}"
+
+  for pb in "${protected_branches[@]}"; do
+    if [[ "$branch" == "$pb" ]]; then
+      echo "✋ Push blocked: direct pushes to '$pb' are not allowed."
+      echo "   Please push a feature branch and open a PR into '$pb'."
+      exit 1
+    fi
+  done
+done
+
+exit 0
