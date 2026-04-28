@@ -1086,12 +1086,14 @@ if iCanHazVundle == 0
       if count(g:kd_bundle_groups, 'github_copilot')
         " Enable GitHub Copilot for specific filetypes
         let g:copilot_filetypes = {
-             \ '*': v:false,
-             \ 'python': v:true,
-             \ 'markdown': v:true,
-             \ 'yaml': v:true,
-             \ 'vim': v:true,
-             \ }
+          \ '*': v:false,
+          \ 'terraform': v:true,
+          \ 'ansible': v:true,
+          \ 'python': v:true,
+          \ 'markdown': v:true,
+          \ 'yaml': v:true,
+          \ 'vim': v:true,
+          \ }
       endif
     " }
 
