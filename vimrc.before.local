@@ -1,6 +1,6 @@
-" Standard wihtout any AI plugin
+" Standard without any AI plugin
 let g:kd_bundle_groups=['general', 'neocomplcache', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
-" Standard with Github Copilot plugin
+" Standard with GitHub Copilot plugin
 "let g:kd_bundle_groups=['general', 'programming', 'ruby', 'github_copilot', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
 " Standard with Google Gemini plugin
 "let g:kd_bundle_groups=['general', 'programming', 'ruby', 'google_gemini', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
