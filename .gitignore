@@ -6,3 +6,5 @@
 .vimrc.*
 bundle
 vimrc
+autoload
+plugged
