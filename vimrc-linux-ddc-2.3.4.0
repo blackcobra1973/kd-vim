@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.3.1.0 - 2026-08-19
+"       2.3.4.0 - 2026-08-21
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -43,19 +43,43 @@
     return has('macunix')
   endfunction
 
-  " Current ddc.vim/denops releases require Deno 2.3+.  Cache the check
-  " because it is used both while declaring plugins and while configuring ddc.
+  " ddc.vim compatibility baseline (checked 2026-08-21):
+  "   - ddc.vim: Vim 9.1.0448+ and Deno 2.3.0+
+  "   - denops.vim: current v8+ (vim-plug tracks the current repository)
+  "   - Vim must also provide +job and +channel for denops.
+  " Distribution notes:
+  "   - Debian 13 stock Vim 9.1.1230+ satisfies the Vim requirement.
+  "   - RHEL/AlmaLinux 10 stock Vim 9.1.083 does not; Vim 9.2 does.
+  "   - RHEL/AlmaLinux 9 stock Vim 8.2.2637 does not; Vim 9.2 does.
+  function! s:KDHasSupportedVimForDdc() abort
+    return has('patch-9.1.448') && has('job') && has('channel')
+  endfunction
+
+  " Probe Deno only when this Vim can actually run ddc/denops.  Suppress stderr
+  " so a broken third-party/AppImage Deno cannot print FUSE errors during Vim
+  " startup.  The official Deno Linux binary is a standalone executable and
+  " does not require FUSE.
   function! s:KDHasSupportedDeno() abort
     if exists('s:kd_deno_supported')
       return s:kd_deno_supported
     endif
 
     let s:kd_deno_supported = 0
-    if !executable('deno')
+
+    if !s:KDHasSupportedVimForDdc() || !executable('deno')
       return 0
     endif
 
-    let l:deno_version_output = system(shellescape(exepath('deno')) . ' --version')
+    let l:deno_path = exepath('deno')
+    if empty(l:deno_path)
+      return 0
+    endif
+
+    let l:deno_version_output = system(shellescape(l:deno_path) . ' --version 2>/dev/null')
+    if v:shell_error != 0
+      return 0
+    endif
+
     let l:deno_version = matchlist(l:deno_version_output, '\v^deno\s+(\d+)\.(\d+)(\.\d+)?')
     if len(l:deno_version) >= 3
       let l:deno_major = str2nr(l:deno_version[1])
@@ -65,6 +89,32 @@
 
     return s:kd_deno_supported
   endfunction
+
+  " Diagnostic command for mixed RHEL/Alma/Debian estates.
+  function! s:KDCompletionHealth() abort
+    let l:vim_line = get(split(execute('version'), "\n"), 0, 'Vim version unavailable')
+    echomsg 'Completion health: ' . l:vim_line
+    echomsg '  ddc Vim requirement (>= 9.1.448, +job, +channel): '
+          \ . (s:KDHasSupportedVimForDdc() ? 'OK' : 'NOT MET')
+
+    let l:deno_path = exepath('deno')
+    if empty(l:deno_path)
+      echomsg '  Deno: NOT FOUND (ddc requires >= 2.3.0)'
+    else
+      let l:deno_output = system(shellescape(l:deno_path) . ' --version 2>/dev/null')
+      let l:deno_first = get(split(l:deno_output, "\n"), 0, 'failed to execute')
+      echomsg '  Deno: ' . l:deno_path . ' (' . l:deno_first . ')'
+      echomsg '  Deno requirement: ' . (s:KDHasSupportedDeno() ? 'OK' : 'NOT MET')
+    endif
+
+    if exists('g:plugs') && has_key(g:plugs, 'ddc.vim')
+      let l:ddc_ready = filereadable(g:plugs['ddc.vim'].dir . '/autoload/ddc/custom.vim')
+      echomsg '  ddc.vim files: ' . (l:ddc_ready ? 'installed' : 'missing/incomplete')
+    else
+      echomsg '  ddc.vim: not declared for this Vim build'
+    endif
+  endfunction
+  command! KDCompletionHealth call <SID>KDCompletionHealth()
 
   set nocompatible        " Use Vim defaults rather than vi compatibility
   set background=dark     " Assume a dark background
@@ -288,11 +338,8 @@
         Plug 'tacahiroy/ctrlp-funky'
         Plug 'mg979/vim-visual-multi', { 'branch': 'master' }
         Plug 'easymotion/vim-easymotion'
-        if has('python') || has('python3')
-          Plug 'sjl/gundo.vim'
-        else
-          Plug 'mbbill/undotree'
-        endif
+        " Use the Python-independent Undotree visualizer on all supported platforms.
+        Plug 'mbbill/undotree'
         Plug 'nathanaelkane/vim-indent-guides'
         Plug 'mhinz/vim-signify'
         Plug 'bronson/vim-trailing-whitespace'
@@ -393,9 +440,11 @@
         Plug 'ycm-core/YouCompleteMe'
         Plug 'SirVer/ultisnips'
       elseif count(g:kd_bundle_groups, 'ddc')
-        " Current ddc/denops releases require Vim 9.1.1646+ and Deno 2.3+.
-        " Only add the denops stack when the local Vim can actually load it.
-        if has('patch-9.1.1646') && s:KDHasSupportedDeno()
+        " Declare the ddc stack whenever Vim itself is capable of running it.
+        " Deno is intentionally NOT required at declaration time: this lets a
+        " clean host install the plugins first and add/repair Deno afterwards
+        " without changing the vim-plug plugin set.
+        if s:KDHasSupportedVimForDdc()
           Plug 'vim-denops/denops.vim'
           Plug 'Shougo/ddc.vim'
           Plug 'Shougo/ddc-ui-native'
@@ -1595,12 +1644,12 @@ endif
 
     " ddc.vim {
         elseif count(g:kd_bundle_groups, 'ddc')
-            " Current denops/ddc requires Vim 9.1.1646+ and Deno 2.3+.
-            " If either prerequisite is missing, retain native omni-completion
-            " instead of failing Vim startup.
-            if !has('patch-9.1.1646')
+            " Current denops/ddc requires Vim 9.1.0448+ and Deno 2.3+.
+            " If a prerequisite or the plugin itself is unavailable, retain
+            " native omni-completion instead of failing Vim startup.
+            if !s:KDHasSupportedVimForDdc()
                 echohl WarningMsg
-                echomsg 'ddc.vim disabled: Vim 9.1.1646 or newer is required; using native omni-completion.'
+                echomsg 'ddc.vim disabled: Vim 9.1.0448+ with +job and +channel is required; using native omni-completion. Run :KDCompletionHealth for details.'
                 echohl None
                 call s:KDEnableLanguageOmniComplete()
             elseif !executable('deno')
@@ -1610,8 +1659,16 @@ endif
                 call s:KDEnableLanguageOmniComplete()
             elseif !s:KDHasSupportedDeno()
                 echohl WarningMsg
-                echomsg 'ddc.vim disabled: Deno 2.3 or newer is required; using native omni-completion.'
+                echomsg 'ddc.vim disabled: Deno 2.3+ is unavailable or failed to execute; using native omni-completion.'
                 echohl None
+                call s:KDEnableLanguageOmniComplete()
+            elseif !exists('g:plugs') || !has_key(g:plugs, 'ddc.vim')
+                        \ || !filereadable(g:plugs['ddc.vim'].dir . '/autoload/ddc/custom.vim')
+                        \ || !filereadable(g:plugs['ddc.vim'].dir . '/autoload/ddc.vim')
+                " First startup after vim-plug bootstrap, or an incomplete plugin
+                " installation: do not call ddc autoload functions until the actual
+                " ddc files exist. PlugInstall runs on VimEnter and re-sources this
+                " vimrc; until then native omni-completion is safe.
                 call s:KDEnableLanguageOmniComplete()
             else
                 " Preserve the previous completion behavior: buffer words,
@@ -1732,29 +1789,15 @@ endif
       endif
     augroup END
 
-    " UndoTree {
+    " Undotree {
         if isdirectory(g:kd_plugin_directory . '/undotree/')
-            nnoremap <Leader>u :UndotreeToggle<CR>
-            " If undotree is opened, it is likely one wants to interact with it.
-            let g:undotree_SetFocusWhenToggle=1
-        endif
-    " }
+          " Keep F5 and the existing leader shortcut for undo-tree access.
+          nnoremap <F5> :UndotreeToggle<CR>
+          nnoremap <Leader>u :UndotreeToggle<CR>
 
-    " Gundo {
-        if isdirectory(g:kd_plugin_directory . '/gundo.vim/')
-          if has("python3")
-            let g:gundo_prefer_python3 = 1
-          elseif !has("python")
-            call janus#disable_plugin("gundo", s:no_python_support)
-          endif
+          " Focus the history window immediately after opening it.
+          let g:undotree_SetFocusWhenToggle = 1
 
-          if version >= 703
-            nnoremap <F5> :GundoToggle<CR>
-          endif
-
-          if version < 703
-            let g:gundo_disable=1
-          endif
         endif
     " }
 
@@ -1851,11 +1894,11 @@ endif
                 \ }
 
           function! LightlineModified()
-            return &ft =~ 'help\|vimfiler\|gundo' ? '' : &modified ? '+' : &modifiable ? '' : '-'
+            return &ft =~ 'help\|vimfiler\|undotree' ? '' : &modified ? '+' : &modifiable ? '' : '-'
           endfunction
 
           function! LightlineReadonly()
-            return &ft !~? 'help\|vimfiler\|gundo' && &readonly ? '' : ''
+            return &ft !~? 'help\|vimfiler\|undotree' && &readonly ? '' : ''
           endfunction
 
           function! LightlineFilename()
@@ -1868,7 +1911,7 @@ endif
           endfunction
 
           function! LightlineFugitive()
-            if &ft !~? 'vimfiler\|gundo' && exists("*fugitive#head")
+            if &ft !~? 'vimfiler\|undotree' && exists("*fugitive#head")
               let branch = fugitive#head()
               "return branch !=# '' ? '⎇ '.branch : ''
               return branch !=# '' ? ' '.branch : ''
