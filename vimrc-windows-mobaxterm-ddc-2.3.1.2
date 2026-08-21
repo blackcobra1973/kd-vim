@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.3.1.0 - 2026-08-19
+"       2.3.1.2 - 2026-08-19 (Windows/MobaXterm)
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -20,7 +20,6 @@
 "     -> Vim formatting
 "     -> Vim key (re)mappings
 "     -> Vim plugins configurations
-"     -> Vim GUI Settings
 "     -> Vim functions
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -29,22 +28,30 @@
 " => Vim Environment
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Environment {
-  " This configuration intentionally supports Linux and macOS only.
-  if !has('linux') && !has('macunix')
-    echoerr 'This vimrc supports Linux and macOS only.'
-    finish
+  " This variant targets terminal Vim running inside MobaXterm's
+  " Cygwin/Unix-like environment on Windows. It intentionally does not
+  " configure Windows gVim or any X11 GUI.
+  function! MOBAXTERM() abort
+    if exists('g:kd_force_mobaxterm') && g:kd_force_mobaxterm
+      return 1
+    endif
+
+    " MobaXterm normally exposes Windows drives below /drives and provides
+    " /bin/bash. win32unix covers Vim builds that explicitly identify the
+    " Cygwin-style environment.
+    return executable('/bin/bash')
+          \ && (isdirectory('/drives') || has('win32unix'))
+  endfunction
+
+  if !MOBAXTERM()
+    echohl WarningMsg
+    echomsg 'Warning: this vimrc is intended for MobaXterm terminal Vim on Windows.'
+    echohl None
   endif
 
-  function! LINUX() abort
-    return has('linux')
-  endfunction
-
-  function! MACOS() abort
-    return has('macunix')
-  endfunction
-
-  " Current ddc.vim/denops releases require Deno 2.3+.  Cache the check
-  " because it is used both while declaring plugins and while configuring ddc.
+  " Current ddc.vim/denops releases require Deno 2.3+. Invoke Deno by name
+  " instead of through exepath(): MobaXterm can resolve a Windows deno.exe
+  " from PATH even when a native Windows path would not be usable by Bash.
   function! s:KDHasSupportedDeno() abort
     if exists('s:kd_deno_supported')
       return s:kd_deno_supported
@@ -55,7 +62,7 @@
       return 0
     endif
 
-    let l:deno_version_output = system(shellescape(exepath('deno')) . ' --version')
+    let l:deno_version_output = system('deno --version 2>&1')
     let l:deno_version = matchlist(l:deno_version_output, '\v^deno\s+(\d+)\.(\d+)(\.\d+)?')
     if len(l:deno_version) >= 3
       let l:deno_major = str2nr(l:deno_version[1])
@@ -67,17 +74,61 @@
   endfunction
 
   set nocompatible        " Use Vim defaults rather than vi compatibility
-  set background=dark     " Assume a dark background
-  set shell=/bin/sh
+  set background=dark     " Assume a dark terminal background
   set encoding=utf-8
+  set fileformats=unix,dos
 
-  " Arrow key fix for common Unix terminal types.
+  " MobaXterm supports a 256-color terminal. Some bundled Vim builds report
+  " a lower terminal color count, which breaks legacy 256-color schemes such
+  " as grb256 and also changes Lightline's palette.
+  if !has('gui_running') && exists('&t_Co') && &t_Co < 256
+    set t_Co=256
+  endif
+
+  " MobaXterm ships Bash and Unix tools. Use Bash explicitly so :!, system(),
+  " vim-plug, Git hooks and helper commands all use the same shell semantics.
+  if executable('/bin/bash')
+    set shell=/bin/bash
+  elseif executable('/bin/sh')
+    set shell=/bin/sh
+  endif
+  set shellcmdflag=-c
+
+  " If a native Win32 Vim binary is ever launched from MobaXterm, keep its
+  " path handling Unix-friendly. Cygwin/win32unix Vim builds do not need
+  " these Windows-only option changes.
+  if has('win32') || has('win64')
+    if exists('+shellslash')
+      set shellslash
+    endif
+    set shellquote=
+    set shellxquote=\"
+    if exists('+completeslash')
+      set completeslash=slash
+    endif
+  endif
+
+  " Always use ~/.vim rather than Vim's native-Windows "vimfiles" convention.
+  " This also keeps the same layout when HOME is a MobaXterm persistent home
+  " or a Windows folder exposed as /drives/c/....
+  let s:kd_vim_runtime = expand('~/.vim')
+  let s:kd_vim_after = s:kd_vim_runtime . '/after'
+  let s:kd_runtime_paths = split(&runtimepath, ',')
+
+  if index(s:kd_runtime_paths, s:kd_vim_runtime) < 0
+    let &runtimepath = s:kd_vim_runtime . ',' . &runtimepath
+  endif
+  if index(split(&runtimepath, ','), s:kd_vim_after) < 0
+    let &runtimepath .= ',' . s:kd_vim_after
+  endif
+
+  " Arrow-key fix for MobaXterm/xterm-style terminals.
   if &term[:4] ==# 'xterm' || &term[:5] ==# 'screen' || &term[:3] ==# 'rxvt'
     inoremap <silent> <C-[>OC <Right>
   endif
 " }
 
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Vim Options
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " kd options {
@@ -180,8 +231,11 @@
     let g:kd_curl_allow_insecure_fallback = 1
   endif
 
-  " Optional custom CA bundle, useful with an internal/corporate CA:
+  " Optional custom CA bundle, useful with an internal/corporate CA.
+  " On MobaXterm this is the preferred solution for a corporate TLS proxy:
   "   let g:kd_curl_ca_bundle = '/path/to/ca-bundle.pem'
+  " If verified TLS still fails and g:kd_curl_allow_insecure_fallback is 1,
+  " the bootstrap retries once with curl --insecure and emits a warning.
   let s:kd_plug_file = expand('~/.vim/autoload/plug.vim')
   let s:kd_plug_url = 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
   let s:kd_plug_bootstrapped = 0
@@ -190,9 +244,24 @@
     echo 'vim-plug not found; bootstrapping it now...'
 
     let s:kd_plug_autoload_dir = fnamemodify(s:kd_plug_file, ':h')
-    if !isdirectory(s:kd_plug_autoload_dir) && !mkdir(s:kd_plug_autoload_dir, 'p', 0700)
-      echoerr 'Cannot create vim-plug autoload directory: ' . s:kd_plug_autoload_dir
-      finish
+    if !isdirectory(s:kd_plug_autoload_dir)
+      " Vim's mkdir() can fail on some MobaXterm HOME mappings (notably
+      " Windows/OneDrive paths exposed below /drives). Try it first, then
+      " fall back to MobaXterm's mkdir -p with proper shell quoting.
+      try
+        call mkdir(s:kd_plug_autoload_dir, 'p')
+      catch /^Vim\%((\a\+)\)\=:E739/
+        " Handled by the shell fallback below.
+      endtry
+
+      if !isdirectory(s:kd_plug_autoload_dir) && executable('mkdir')
+        silent execute '!mkdir -p ' . shellescape(s:kd_plug_autoload_dir)
+      endif
+
+      if !isdirectory(s:kd_plug_autoload_dir)
+        echoerr 'Cannot create vim-plug autoload directory: ' . s:kd_plug_autoload_dir
+        finish
+      endif
     endif
 
     if !executable('curl')
@@ -314,6 +383,9 @@
         endif
         Plug 'osyo-manga/vim-over'
         Plug 'gcmt/wildfire.vim'
+        " Canonical standalone grb256 package. Keep kd-vim-colors as well
+        " because it contains the user's other custom color schemes.
+        Plug 'fionn/grb256'
         Plug 'blackcobra1973/kd-vim-colors'
         Plug 'noahfrederick/vim-hemisu'
         Plug 'sjl/badwolf'
@@ -395,7 +467,7 @@
       elseif count(g:kd_bundle_groups, 'ddc')
         " Current ddc/denops releases require Vim 9.1.1646+ and Deno 2.3+.
         " Only add the denops stack when the local Vim can actually load it.
-        if has('patch-9.1.1646') && s:KDHasSupportedDeno()
+        if has('patch-9.1.1646') && has('job') && has('channel') && s:KDHasSupportedDeno()
           Plug 'vim-denops/denops.vim'
           Plug 'Shougo/ddc.vim'
           Plug 'Shougo/ddc-ui-native'
@@ -569,7 +641,7 @@ silent! packadd! matchit
 
 " vim-plug enables filetype-specific indentation automatically.  The original
 " configuration intentionally uses filetype plugins without Vim indent files.
-filetype indent off
+silent! filetype indent off
 
 " Install missing plugins once Vim has completed startup.  This avoids running
 " PlugInstall recursively while the vimrc itself is still being sourced.
@@ -607,7 +679,7 @@ endif
   scriptencoding utf-8        " Set encoding to UTF8
   set history=1000            " Sets how many lines of history VIM has to remember
   set autoread                " Set to auto read when a file is changed from the outside
-  set fileformats=unix                " Linux and macOS use Unix line endings
+  set fileformats=unix,dos            " Prefer Unix files, but detect Windows CRLF files
 
   " Most prefer to automatically switch to the current file directory when
   " a new buffer is opened; to prevent this behavior, add the following to
@@ -630,7 +702,7 @@ endif
 
   " Instead of reverting the cursor to the last position in the buffer, we
   " set it to the first line when editing a git commit message
-  autocmd FileType gitcommit au! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
+  autocmd FileType gitcommit autocmd! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
 
   " Enable filetype plugins
   "filetype plugin on
@@ -692,23 +764,51 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Vim UI {
 
-  let g:solarized_termcolors=256
-  if !exists('g:override_kd_bundles') && filereadable(g:kd_plugin_directory . '/vim-colors-solarized/colors/solarized.vim')
-    let g:solarized_termtrans=1
-    let g:solarized_contrast="normal"
-    let g:solarized_visibility="normal"
-    colorscheme solarized       " Load a colorscheme
+  " Configure terminal palette before either Lightline or the editor
+  " colorscheme is initialized. Lightline recommends 256 colors in terminal
+  " Vim, and its palette must be known before an editor :colorscheme change.
+  if !has('gui_running') && exists('&t_Co') && &t_Co < 256
+    set t_Co=256
   endif
 
-  " Add possibility to define the colorsheme in the .vimrc.before.local file
+  if exists('g:kd_use_lightline')
+    if !exists('g:lightline')
+      let g:lightline = {}
+    endif
+    if !has_key(g:lightline, 'colorscheme')
+      let g:lightline.colorscheme = 'powerline'
+    endif
+  endif
+
+  let g:solarized_termcolors = 256
+  let g:solarized_termtrans = 1
+  let g:solarized_contrast = 'normal'
+  let g:solarized_visibility = 'normal'
+
+  " Add possibility to define the colorscheme in ~/.vimrc.before.local.
   " Example: let g:kd_colorscheme = 'badwolf'
   if !exists('g:kd_colorscheme')
-    "colorscheme grb256
-    "colorscheme hemisu
-    silent! colorscheme Tomorrow-Night-Bright
-  else
-    silent! exec 'colorscheme ' . g:kd_colorscheme
+    let g:kd_colorscheme = 'Tomorrow-Night-Bright'
   endif
+
+  " grb256 is a cterm/256-color scheme. Do not let a true-color setting
+  " reinterpret its palette when this specific scheme is selected.
+  if g:kd_colorscheme ==# 'grb256' && exists('+termguicolors')
+    set notermguicolors
+  endif
+
+  function! s:KDApplyColorScheme() abort
+    try
+      execute 'colorscheme ' . fnameescape(g:kd_colorscheme)
+    catch /^Vim\%((\a\+)\)\=:E185/
+      echohl WarningMsg
+      echomsg 'Configured colorscheme "' . g:kd_colorscheme . '" is not installed.'
+      echomsg 'Run :PlugInstall (or restart after automatic installation) and retry.'
+      echohl None
+      colorscheme default
+    endtry
+  endfunction
+  call s:KDApplyColorScheme()
 
   set tabpagemax=15               " Only show 15 tabs
   set modeline                    " Enable modeline (Vim settings in a file)
@@ -803,7 +903,7 @@ endif
 
   " Ignore compiled files
   set wildignore=*.o,*~,*.pyc
-  set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.DS_Store
+  set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,Thumbs.db,desktop.ini,*.lnk
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -1094,19 +1194,8 @@ endif
   " Easier formatting
   nnoremap <silent> <leader>q gwip
 
-  " Fullscreen helper for Linux GUI environments when wmctrl is available.
-  if LINUX() && executable('wmctrl') && exists('v:windowid')
-    map <silent> <F11> :call system('wmctrl -ir ' . v:windowid . ' -b toggle,fullscreen')<CR>
-  endif
-
   " Fast saving
   nmap <leader>w :write!<CR>
-
-  " For when you forget to sudo.. Really Write the file.
-  cmap w!! w !sudo tee % >/dev/null
-  " :W sudo saves the file
-  " (useful for handling the permission-denied error)
-  " command W w !sudo tee % > /dev/null
 
   " Visual mode pressing * or # searches for the current selection
   " Super useful! From an idea by Michael Naumann
@@ -1603,6 +1692,11 @@ endif
                 echomsg 'ddc.vim disabled: Vim 9.1.1646 or newer is required; using native omni-completion.'
                 echohl None
                 call s:KDEnableLanguageOmniComplete()
+            elseif !has('job') || !has('channel')
+                echohl WarningMsg
+                echomsg 'ddc.vim disabled: this MobaXterm Vim build requires +job and +channel; using native omni-completion.'
+                echohl None
+                call s:KDEnableLanguageOmniComplete()
             elseif !executable('deno')
                 echohl WarningMsg
                 echomsg 'ddc.vim disabled: Deno 2.3 or newer is required and deno is not in PATH; using native omni-completion.'
@@ -1830,8 +1924,9 @@ endif
 
         if isdirectory(g:kd_plugin_directory . '/lightline.vim/')
 
+          let s:kd_lightline_colorscheme = get(g:lightline, 'colorscheme', 'powerline')
           let g:lightline = {
-                \ 'colorscheme': 'powerline',
+                \ 'colorscheme': s:kd_lightline_colorscheme,
                 \ 'mode_map': { 'c': 'NORMAL' },
                 \ 'active': {
                 \   'left': [ [ 'mode', 'paste' ], [ 'fugitive', 'filename' ] ]
@@ -1986,37 +2081,6 @@ endif
 
 
 """"""""""""""""""""""""""""""
-" => Vim GUI Settings
-""""""""""""""""""""""""""""""
-" GUI Settings {
-
-    " GVIM- (here instead of .gvimrc)
-    if has('gui_running')
-        set guioptions-=T           " Remove the toolbar
-        set lines=40                " 40 lines of text instead of 24
-        set linespace=0             " No extra spacing between GUI text rows
-        if !exists('g:kd_no_big_font')
-            if LINUX()
-                set guifont=DejaVu\ Sans\ Mono\ 12,Liberation\ Mono\ 12,Monospace\ 12
-            elseif MACOS()
-                set guifont=Menlo:h11,Monaco:h11,Courier:h12
-            endif
-        endif
-    else
-        " Modern Vim detects terminal color capabilities automatically.
-        "set term=builtin_ansi       " Legacy fallback for unusual terminals
-    endif
-
-    " Set extra options when running in GUI mode
-    "if has("gui_running")
-    "  set guioptions-=T
-    "  set guioptions-=e
-    "  set t_Co=256
-    "  set guitablabel=%M\ %t
-    "endif
-" }
-
-""""""""""""""""""""""""""""""
 " => Vim Functions
 """"""""""""""""""""""""""""""
 " Functions {
@@ -2145,9 +2209,12 @@ endif
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     " => Automatically chmod +x for files starting with #! .../bin/
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-    function! s:AutoChmodX()
-      if getline(1) =~ "^#!"
-        execute "silent !chmod +x " . shellescape(expand('%:h'), 1)
+    function! s:AutoChmodX() abort
+      let l:file = expand('%:p')
+      " Executable bits are meaningful in MobaXterm's Unix filesystem but not
+      " for ordinary files stored on Windows drives below /drives/*.
+      if getline(1) =~# '^#!' && l:file !~# '^/drives/'
+        silent execute '!chmod +x ' . shellescape(l:file)
       endif
     endfunction
     autocmd BufWritePost * call s:AutoChmodX()
