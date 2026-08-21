@@ -1,0 +1,22 @@
+" Standard without any AI plugin
+let g:kd_bundle_groups=['general', 'ddc', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+" Standard with Github Copilot plugin
+"let g:kd_bundle_groups=['general', 'ddc', 'programming', 'ruby', 'github_copilot', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+
+" ddc.vim is the standard completion engine. Current ddc/denops requires
+" Vim 9.1.1646+ and Deno 2.3+. The main vimrc falls back to native
+" omni-completion when these requirements are unavailable.
+" ddc's autoCompleteDelay already defaults to 0, so no redundant override
+" is required here.
+
+"let g:kd_use_powerline = 1
+"let g:kd_use_old_powerline = 1
+let g:airline_powerline_fonts=1
+let g:kd_use_lightline = 1
+"let g:kd_use_agnoster = 1
+let g:kd_colorscheme = 'grb256'
+"let g:kd_colorscheme = 'hemisu'
+"let g:kd_colorscheme = 'Tomorrow-Night-Bright'
+"let g:kd_colorscheme = 'Tomorrow-Night-Eighties'
+"let g:kd_colorscheme = 'Tomorrow-Night'
+"let g:kd_colorscheme = 'badwolf'
