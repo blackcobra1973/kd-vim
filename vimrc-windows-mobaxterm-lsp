@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.6.0.7 - 2026-08-23 (Windows/MobaXterm)
+"       2.6.0.8 - 2026-08-23 (Windows/MobaXterm)
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -1613,7 +1613,9 @@ endif
           call LspOptionsSet({
                 \ 'autoComplete': v:true,
                 \ 'autoHighlightDiags': v:true,
-                \ 'showDiagInPopup': v:true,
+                \ 'showDiagInPopup': v:false,
+                \ 'showDiagOnStatusLine': v:true,
+                \ 'showDiagWithVirtualText': v:false,
                 \ })
 
           let l:servers = []
@@ -1698,41 +1700,49 @@ endif
         let g:ale_lint_on_insert_leave = 1
         let g:ale_lint_on_save = 1
         let g:ale_lint_on_enter = 1
+        " Diagnostics are text-only at the bottom of Vim. ALE virtual text is
+        " deliberately disabled so messages such as '# E: line too long ...'
+        " are never rendered beside the source line.
+        let g:ale_echo_cursor = 1
         let g:ale_echo_msg_format = '[%linter%] %severity%: %s'
+        let g:ale_virtualtext_cursor = 'disabled'
+        let g:ale_cursor_detail = 0
+        let g:ale_open_list = 0
+        let g:ale_set_loclist = 1
+        let g:ale_yaml_yamllint_options = "-d '{extends: default, rules: {line-length: disable, comments-indentation: disable, truthy: disable}}'"
         let g:ale_sign_error = '✗'
         let g:ale_sign_warning = '⚠'
-        " ansible-vim detects playbooks as yaml.ansible. ALE splits dot-separated
-        " filetypes before selecting linters, so a global yaml.ansible entry is
-        " not sufficient: the yaml half can still select generic yamllint.
-        " A FileType-local alias/list below forces BOTH halves through the Ansible
-        " linter namespace and prevents generic yamllint from running.
 
-        " Final output guard for the three intentionally ignored Ansible YAML style
-        " rules. The command disables them at source and this callback removes
-        " them again if a project/global yamllint configuration or an older
-        " yamllint behaves differently. Every other yamllint diagnostic remains.
-        function! s:KDHandleAnsibleYamllint(buffer, lines) abort
+        " Use the same package-controlled yamllint policy for BOTH normal YAML and
+        " Ansible YAML. Previous releases applied this only to yaml.ansible, which
+        " allowed plain 'yaml' buffers to fall back to ALE's stock yamllint and
+        " reintroduce line-length/comments-indentation/truthy style warnings.
+        " Disable the rules at source, then filter them again as a defensive guard.
+        function! s:KDHandleYamlLint(buffer, lines) abort
           let l:items = ale#handlers#yamllint#Handle(a:buffer, a:lines)
           call filter(l:items,
                 \ "index(['line-length', 'comments-indentation', 'truthy'], get(v:val, 'code', '')) < 0")
           return l:items
         endfunction
 
-        " Register the dedicated linter directly through ALE's autoload API.
-        " Do not test for :ALELint here: with normal vim-plug startup that
-        " command may not exist yet while the vimrc is sourced. That startup
-        " ordering bug made 2.6.0.2/2.6.0.3 silently skip this definition.
         if isdirectory(g:kd_plugin_directory . '/ale')
-          call ale#linter#Define('ansible', {
-                \ 'name': 'yamllint_ansible',
+          let s:kd_yamllint_command = "%e -d '{extends: default, rules: {line-length: disable, comments-indentation: disable, truthy: disable}}' -f parsable %t"
+          call ale#linter#Define('yaml', {
+                \ 'name': 'yamllint_kd',
                 \ 'executable': 'yamllint',
-                \ 'command': "%e -d '{extends: default, rules: {line-length: disable, comments-indentation: disable, truthy: disable}}' -f parsable %t",
-                \ 'callback': function('<SID>KDHandleAnsibleYamllint'),
+                \ 'command': s:kd_yamllint_command,
+                \ 'callback': function('<SID>KDHandleYamlLint'),
+                \ })
+          call ale#linter#Define('ansible', {
+                \ 'name': 'yamllint_kd',
+                \ 'executable': 'yamllint',
+                \ 'command': s:kd_yamllint_command,
+                \ 'callback': function('<SID>KDHandleYamlLint'),
                 \ })
         endif
         let g:ale_linters = {
-          \ 'ansible': ['yamllint_ansible', 'ansible_lint'],
-          \ 'yaml': ['yamllint'],
+          \ 'ansible': ['yamllint_kd', 'ansible_lint'],
+          \ 'yaml': ['yamllint_kd'],
           \ 'python': ['ruff'],
           \ 'sh': ['shellcheck'],
           \ 'dockerfile': ['hadolint'],
@@ -1744,7 +1754,7 @@ endif
         " and make the selection unambiguous for both components.
         function! s:KDConfigureAnsibleAleBuffer() abort
           let b:ale_linter_aliases = ['ansible']
-          let b:ale_linters = ['yamllint_ansible', 'ansible_lint']
+          let b:ale_linters = ['yamllint_kd', 'ansible_lint']
         endfunction
         augroup kd_ale_ansible_buffers
           autocmd!

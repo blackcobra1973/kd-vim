@@ -1,11 +1,11 @@
-# Vim Configuration 2.6.0.7
+# Vim Configuration 2.6.0.8
 
 A maintained classic-Vim configuration for Linux, macOS, and Windows through
 MobaXterm. The 2.6 series uses a Vim9-native LSP client, an external and pinned
 language-server manager, ALE for linting/fixing, optional GitHub Copilot ghost
 text on Linux/macOS, and Linux-only OpenAI Codex command integration.
 
-**Release:** 2.6.0.7  
+**Release:** 2.6.0.8  
 **Date:** 2026-08-23  
 **Primary LSP client:** `yegappan/lsp`  
 **Language-server manager:** `tools/lsp/lsp-manager.sh` 1.0.4  
@@ -13,9 +13,47 @@ text on Linux/macOS, and Linux-only OpenAI Codex command integration.
 
 ---
 
-## 1. What is new in 2.6.0.7
+## 1. What is new in 2.6.0.8
 
-### Docker Language Server installation fix
+### YAML/Ansible diagnostics display and yamllint policy fix
+
+Release 2.6.0.8 fixes two related linting behaviors:
+
+1. `line-length` and `comments-indentation` are now disabled for **all YAML
+   buffers**, not only buffers detected as `yaml.ansible`. `truthy` remains
+   disabled as part of the same maintained YAML style policy.
+2. ALE virtual text is completely disabled. Diagnostics are no longer rendered
+   at the end of source lines as comment-like text such as:
+
+```text
+# E: line too long (122 > 80 characters)
+```
+
+ALE still reports meaningful diagnostics in Vim's bottom command/message area
+when the cursor is on the affected line, and still maintains the location list.
+The setting responsible for removing inline/end-of-line diagnostics is:
+
+```vim
+let g:ale_virtualtext_cursor = 'disabled'
+let g:ale_echo_cursor = 1
+```
+
+The yegappan/lsp diagnostic display follows the same policy: virtual text and
+automatic diagnostic popups are disabled, while status-line diagnostics remain
+enabled.
+
+The package-controlled yamllint configuration disables:
+
+```text
+line-length
+comments-indentation
+truthy
+```
+
+This policy is passed directly to yamllint, so a plain `yaml` buffer cannot fall
+back to ALE's default yamllint rules and reintroduce those messages.
+
+### Docker Language Server installation fix retained from 2.6.0.7
 
 The previous LSP manager constructed the Docker Language Server release asset
 as:
@@ -55,7 +93,7 @@ docker-language-server-windows-arm64-v0.20.1.exe
 
 ### Package cleanup policy
 
-The 2.6.0.7 archive follows the new packaging rules:
+The 2.6.0.8 archive follows the new packaging rules:
 
 - only the latest version of each maintained file is included;
 - all ddc-era Vim configuration files are removed;
@@ -74,15 +112,12 @@ The old ddc/denops/vim-lsp stack is not required by this release.
 After extraction the archive looks like this:
 
 ```text
-vim-2.6.0.7-package/
+vim-2.6.0.8-package/
 ├── README.md
-├── vim-2.6.0.7-SHA256SUMS.txt
-├── docs/
-│   └── VIM-2.6.0.7-MAINTENANCE.md
+├── VIM-2.6.0.8-MAINTENANCE.md
+├── vim-2.6.0.8-SHA256SUMS.txt
 ├── vimrc-linux-lsp
-├── vimrc-linux-lsp-2.6.0.7
 ├── vimrc-windows-mobaxterm-lsp
-├── vimrc-windows-mobaxterm-lsp-2.6.0.7
 ├── vimrc.before.local-1.4.0
 ├── scripts/
 │   ├── install-vim-ai-linux-1.0.2.sh
@@ -96,9 +131,8 @@ vim-2.6.0.7-package/
             └── package-lock.json
 ```
 
-The unversioned `vimrc-linux-lsp` and `vimrc-windows-mobaxterm-lsp` files are
-canonical deployment copies. Their contents match the latest release-labelled
-2.6.0.7 copies.
+The two `vimrc-*` files are the canonical current deployment files. Historical
+or duplicate release-labelled Vimrc snapshots are intentionally not included.
 
 ---
 
@@ -192,8 +226,8 @@ properties; the included macOS helper checks Vim 9.0.0185+ and `+textprop`.
 ### 5.1 Extract the archive
 
 ```bash
-tar -xzf vim-2.6.0.7.tar.gz
-cd vim-2.6.0.7-package
+tar -xzf vim-2.6.0.8.tar.gz
+cd vim-2.6.0.8-package
 ```
 
 ### 5.2 Verify the extracted files
@@ -201,13 +235,13 @@ cd vim-2.6.0.7-package
 Linux:
 
 ```bash
-sha256sum -c vim-2.6.0.7-SHA256SUMS.txt
+sha256sum -c vim-2.6.0.8-SHA256SUMS.txt
 ```
 
 macOS:
 
 ```bash
-shasum -a 256 -c vim-2.6.0.7-SHA256SUMS.txt
+shasum -a 256 -c vim-2.6.0.8-SHA256SUMS.txt
 ```
 
 Do not continue if a checksum fails.
@@ -639,7 +673,7 @@ binary.
 ### Why the Docker 0.20.1 error happened
 
 The 2.6.0.6 manager searched release metadata using a filename that Docker did
-not publish. Therefore it could not find the digest. The 2.6.0.7 manager uses
+not publish. Therefore it could not find the digest. The 2.6.0.8 manager uses
 the real versioned filename and keeps the same mandatory digest check.
 
 ---
@@ -713,10 +747,10 @@ Important ALE mappings:
 | `<leader>zn` | Next ALE diagnostic |
 | `<leader>zp` | Previous ALE diagnostic |
 
-### Ansible/YAML policy
+### YAML/Ansible policy
 
-For Ansible buffers, the dedicated yamllint path intentionally suppresses
-these style-only rules:
+The same yamllint policy is used for normal YAML and Ansible YAML buffers. The
+following style-only rules are intentionally suppressed everywhere in Vim:
 
 ```text
 line-length
@@ -724,7 +758,32 @@ comments-indentation
 truthy
 ```
 
-The remaining YAML and Ansible diagnostics stay enabled.
+This means messages such as `comment not indented like content` and `line too
+long (...)` are not reported by the Vim yamllint integration. All other
+configured YAML and Ansible diagnostics stay enabled.
+
+### Diagnostic presentation
+
+ALE diagnostics are deliberately **not** drawn beside source code. In
+particular, Vim will not append virtual text such as `# E: ...` to the end of a
+line. ALE is configured to echo the active diagnostic in the bottom
+command/message area instead:
+
+```vim
+let g:ale_echo_cursor = 1
+let g:ale_virtualtext_cursor = 'disabled'
+let g:ale_cursor_detail = 0
+let g:ale_open_list = 0
+let g:ale_set_loclist = 1
+```
+
+The LSP client is configured consistently:
+
+```vim
+showDiagInPopup: false
+showDiagOnStatusLine: true
+showDiagWithVirtualText: false
+```
 
 Recommended external Ansible tooling:
 
@@ -1123,16 +1182,25 @@ For stale plugins that were removed from the maintained configuration:
 
 Review the list before confirming removal.
 
-### Ansible line-length/truthy warnings return
+### A suppressed yamllint warning unexpectedly returns
 
-Confirm the filetype:
+The maintained Vim policy suppresses `line-length`, `comments-indentation`, and
+`truthy` for both `yaml` and `yaml.ansible`. First confirm the active filetype:
 
 ```vim
 :set filetype?
 ```
 
-Ansible playbooks should normally be detected as `yaml.ansible`. Check ALE and
-LSP health after detection.
+Then inspect the active ALE configuration:
+
+```vim
+:ALEInfo
+```
+
+For a current 2.6.0.8 configuration, ALE virtual text must report as disabled
+and yamllint must be invoked with the package-controlled rule overrides. If an
+old Vim instance was still running during the upgrade, exit **all** Vim
+instances and start Vim again before testing.
 
 ### Docker Compose LSP does not start
 
@@ -1277,4 +1345,4 @@ For future Vim tar.gz releases:
 - do not keep historical diffs/tool history inside the release archive;
 - regenerate the package SHA-256 manifest after every content change.
 
-These rules are part of the maintained package format from 2.6.0.7 onward.
+These rules are part of the maintained package format from 2.6.0.8 onward.
