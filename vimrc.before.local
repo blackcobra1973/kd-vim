@@ -1,17 +1,34 @@
-" Standard without any AI plugin
-let g:kd_bundle_groups=['general', 'ddc', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
-" Standard with Github Copilot plugin
-"let g:kd_bundle_groups=['general', 'ddc', 'programming', 'ruby', 'github_copilot', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+" vimrc.before.local
+" Version: 1.3.2 - 2026-08-23
 
-" ddc.vim is the standard completion engine. Current ddc/denops requires
-" Vim 9.1.1646+ and Deno 2.3+. The main vimrc falls back to native
-" omni-completion when these requirements are unavailable.
-" ddc's autoCompleteDelay already defaults to 0, so no redundant override
-" is required here.
+" Standard modern profile.
+let g:kd_bundle_groups = ['general', 'ddc', 'lsp', 'ale', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm', 'misc', 'github_copilot', 'codex',]
 
+" Completion prerequisites (current upstream):
+"   ddc.vim/denops: Vim 9.1.1646+ with +job/+channel, Deno 2.3+, denops.vim 8+.
+"   Vim 9.2 builds satisfy the Vim requirement.
+"   Debian 13 stock Vim 9.1.1230/1244 is below the current ddc/denops minimum and uses vim-lsp/native omni-completion; Vim 9.2 enables ddc.
+" Use :KDCompletionHealth and :KDModernHealth for runtime diagnostics.
+
+" Vim 2.5 AI profile:
+"   Linux + macOS: github/copilot.vim supplies inline ghost-text predictions.
+"   Linux only: OpenAI Codex CLI supplies deliberate explain/edit/fix/refactor/test/review tasks.
+"   macOS filters only the codex bundle and keeps github_copilot enabled.
+"   MobaXterm/Windows strips both AI bundle names and remains completely AI-free.
+"   Use :KDAIHealth after installing/authenticating the platform's AI dependencies.
+
+" LSP servers are managed by vim-lsp-settings. Open a relevant file and run:
+"   :LspInstallServer
+" terraform-ls and helm-ls are both supported by vim-lsp-settings.
+
+" Recommended external tools used by the modern profile:
+"   fzf >= 0.54, ripgrep (rg), Universal Ctags, ansible-lint, yamllint,
+"   shellcheck, ruff, hadolint, terraform, tflint and helm.
+
+" Keep the existing statusline/theme defaults.
 "let g:kd_use_powerline = 1
 "let g:kd_use_old_powerline = 1
-let g:airline_powerline_fonts=1
+let g:airline_powerline_fonts = 1
 let g:kd_use_lightline = 1
 "let g:kd_use_agnoster = 1
 let g:kd_colorscheme = 'grb256'
