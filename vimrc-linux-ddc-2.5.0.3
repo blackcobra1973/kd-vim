@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.5.0.2 - 2026-08-23
+"       2.5.0.3 - 2026-08-23
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -116,6 +116,16 @@
       echomsg '  ddc.vim files: ' . (l:ddc_ready ? 'installed' : 'missing/incomplete')
     else
       echomsg '  ddc.vim: not declared for this Vim build'
+    endif
+
+    let l:kd_omnifunc = &l:omnifunc
+    echomsg '  local omnifunc: ' . (empty(l:kd_omnifunc) ? '(none)' : l:kd_omnifunc)
+    if l:kd_omnifunc ==# 'CompleteModules' && !exists('*CompleteModules')
+      echomsg '  omnifunc status: INVALID CompleteModules (2.5.0.3 safety guard will replace/ignore it)'
+    elseif !empty(l:kd_omnifunc) && l:kd_omnifunc !~# '#'
+      echomsg '  omnifunc callable: ' . (exists('*' . l:kd_omnifunc) ? 'yes' : 'not currently defined')
+    elseif l:kd_omnifunc =~# '#'
+      echomsg '  omnifunc callable: autoload function (resolved on use)'
     endif
   endfunction
   command! KDCompletionHealth call <SID>KDCompletionHealth()
@@ -1246,6 +1256,22 @@ endif
 " Plugins {
 
 
+    " Omni-completion safety guard.
+    " Some legacy/runtime combinations can leave &omnifunc=CompleteModules even
+    " though no CompleteModules() Vim function is defined.  Native omni and
+    " ddc-source-omni would both fail with E117 in that state.  Replace only
+    " this known-broken plain function with Vim's safe syntax completion.
+    function! s:KDSanitizeOmnifunc() abort
+      if &l:omnifunc ==# 'CompleteModules' && !exists('*CompleteModules')
+        setlocal omnifunc=syntaxcomplete#Complete
+      endif
+    endfunction
+
+    augroup kd_omnifunc_safety
+      autocmd!
+      autocmd FileType,BufEnter,InsertEnter * call <SID>KDSanitizeOmnifunc()
+    augroup END
+
     " Shared language-specific omni-completion hooks.
     function! s:KDEnableLanguageOmniComplete() abort
       augroup kd_language_omni_complete
@@ -1614,6 +1640,16 @@ endif
                   \ })
                 call ddc#custom#patch_global('sourceParams', {
                   \ 'around': { 'maxSize': 500 },
+                  \ 'omni': {
+                  \   'blacklist': [
+                  \     'LanguageClient#complete',
+                  \     'ccomplete#Complete',
+                  \     'htmlcomplete#CompleteTags',
+                  \     'phpcomplete#CompletePHP',
+                  \     'rubycomplete#Complete',
+                  \     'CompleteModules',
+                  \   ],
+                  \ },
                   \ })
 
                 if !exists('g:kd_ddc_auto_complete_delay')

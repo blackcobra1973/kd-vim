@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 CA_BUNDLE="${KD_CURL_CA_BUNDLE:-}"
 ALLOW_INSECURE_FALLBACK="${KD_CURL_ALLOW_INSECURE_FALLBACK:-1}"
 SKIP_PACKAGES=0
@@ -11,9 +11,9 @@ usage() {
   cat <<USAGE
 install-vim-ai-linux.sh version ${SCRIPT_VERSION}
 
-Installs Linux prerequisites for Vim 2.5.0.0 AI support:
+Installs Linux prerequisites for Vim 2.5.0.3 AI support:
   - Node.js + npm for github/copilot.vim
-  - OpenAI Codex CLI via the official standalone installer
+  - OpenAI Codex CLI via the official standalone installer, exposed as /usr/local/bin/codex
 
 Supported package-manager families:
   - RHEL / AlmaLinux 9 and 10 (dnf)
@@ -115,23 +115,36 @@ if (( ! SKIP_CODEX )); then
 
   [[ -s "$installer" ]] || die "Downloaded Codex installer is empty."
   chmod 700 "$installer"
-  log "Running the official Codex CLI installer"
-  sh "$installer"
+  # The official standalone installer supports CODEX_INSTALL_DIR.  Keep the
+  # managed package cache outside /root so /usr/local/bin/codex remains usable
+  # for non-root users as well.
+  CODEX_SYSTEM_HOME='/usr/local/lib/codex'
+  CODEX_INSTALL_DIR='/usr/local/bin'
+
+  log "Running the official OpenAI Codex CLI installer"
+  log "Codex command path: ${CODEX_INSTALL_DIR}/codex"
+  log "Codex managed package cache: ${CODEX_SYSTEM_HOME}/packages/standalone"
+  run_privileged mkdir -p "$CODEX_INSTALL_DIR" "$CODEX_SYSTEM_HOME"
+  run_privileged env \
+    CODEX_NON_INTERACTIVE=1 \
+    CODEX_INSTALL_DIR="$CODEX_INSTALL_DIR" \
+    CODEX_HOME="$CODEX_SYSTEM_HOME" \
+    sh "$installer"
 fi
 
-# The official installer may update the user's shell PATH rather than the current process.
-if command -v codex >/dev/null 2>&1; then
-  log "Codex CLI: $(codex --version 2>/dev/null || true)"
-elif [[ -x "$HOME/.local/bin/codex" ]]; then
-  warn "Codex was installed at $HOME/.local/bin/codex, but that directory is not in the current PATH."
-  warn "Add $HOME/.local/bin to PATH and start a new shell."
+if (( ! SKIP_CODEX )); then
+  if [[ -x /usr/local/bin/codex ]]; then
+    log "Codex CLI: $(/usr/local/bin/codex --version 2>/dev/null || true)"
+  else
+    die "Codex installation completed without creating /usr/local/bin/codex"
+  fi
 else
-  warn "Codex is not visible in the current PATH yet. Start a new shell and run: command -v codex"
+  log "Skipping Codex installation/update as requested"
 fi
 
 cat <<'NEXT'
 
-Next steps for Vim 2.5.0.0:
+Next steps for Vim 2.5.0.3:
   1. Run: codex
      On first use choose "Sign in with ChatGPT".
   2. Start Vim and run: :PlugInstall
@@ -139,5 +152,5 @@ Next steps for Vim 2.5.0.0:
   4. Run: :KDAIHealth
 
 Copilot is installed by vim-plug from the Vim configuration; this script only
-installs its Node.js/npm runtime prerequisites.
+installs its Node.js/npm runtime prerequisites and installs Codex at /usr/local/bin/codex.
 NEXT
