@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.3.1.0 - 2026-08-19
+"       2.5.0.2 - 2026-08-23
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -20,6 +20,7 @@
 "     -> Vim formatting
 "     -> Vim key (re)mappings
 "     -> Vim plugins configurations
+"     -> Linux/macOS AI integrations (Copilot; Codex CLI on Linux)
 "     -> Vim GUI Settings
 "     -> Vim functions
 "
@@ -43,19 +44,43 @@
     return has('macunix')
   endfunction
 
-  " Current ddc.vim/denops releases require Deno 2.3+.  Cache the check
-  " because it is used both while declaring plugins and while configuring ddc.
+  " ddc.vim compatibility baseline (checked 2026-08-23):
+  "   - ddc.vim: Vim 9.1.1646+ and Deno 2.3.0+
+  "   - denops.vim: current v8+ (vim-plug tracks the current repository)
+  "   - Vim must also provide +job and +channel for denops.
+  " Distribution notes:
+  "   - Debian 13 stock Vim 9.1.1230/1244 is below the current ddc/denops minimum; use the LSP/omni fallback or Vim 9.2.
+  "   - RHEL/AlmaLinux 10 stock Vim 9.1.083 is below the minimum; Vim 9.2 works.
+  "   - RHEL/AlmaLinux 9 stock Vim 8.2.2637 is below the minimum; Vim 9.2 works.
+  function! s:KDHasSupportedVimForDdc() abort
+    return has('patch-9.1.1646') && has('job') && has('channel')
+  endfunction
+
+  " Probe Deno only when this Vim can actually run ddc/denops.  Suppress stderr
+  " so a broken third-party/AppImage Deno cannot print FUSE errors during Vim
+  " startup.  The official Deno Linux binary is a standalone executable and
+  " does not require FUSE.
   function! s:KDHasSupportedDeno() abort
     if exists('s:kd_deno_supported')
       return s:kd_deno_supported
     endif
 
     let s:kd_deno_supported = 0
-    if !executable('deno')
+
+    if !s:KDHasSupportedVimForDdc() || !executable('deno')
       return 0
     endif
 
-    let l:deno_version_output = system(shellescape(exepath('deno')) . ' --version')
+    let l:deno_path = exepath('deno')
+    if empty(l:deno_path)
+      return 0
+    endif
+
+    let l:deno_version_output = system(shellescape(l:deno_path) . ' --version 2>/dev/null')
+    if v:shell_error != 0
+      return 0
+    endif
+
     let l:deno_version = matchlist(l:deno_version_output, '\v^deno\s+(\d+)\.(\d+)(\.\d+)?')
     if len(l:deno_version) >= 3
       let l:deno_major = str2nr(l:deno_version[1])
@@ -65,6 +90,52 @@
 
     return s:kd_deno_supported
   endfunction
+
+  " Diagnostic command for mixed RHEL/Alma/Debian estates.
+  function! s:KDCompletionHealth() abort
+    let l:vim_line = get(split(execute('version'), "\n"), 0, 'Vim version unavailable')
+    echomsg 'Completion health: ' . l:vim_line
+    echomsg '  ddc Vim requirement (>= 9.1.1646, +job, +channel): '
+          \ . (s:KDHasSupportedVimForDdc() ? 'OK' : 'NOT MET')
+    if !s:KDHasSupportedVimForDdc()
+      echomsg '  ddc/denops fallback: vim-lsp/native omni-completion (upgrade to Vim 9.1.1646+ or Vim 9.2 for ddc)'
+    endif
+
+    let l:deno_path = exepath('deno')
+    if empty(l:deno_path)
+      echomsg '  Deno: NOT FOUND (ddc requires >= 2.3.0)'
+    else
+      let l:deno_output = system(shellescape(l:deno_path) . ' --version 2>/dev/null')
+      let l:deno_first = get(split(l:deno_output, "\n"), 0, 'failed to execute')
+      echomsg '  Deno: ' . l:deno_path . ' (' . l:deno_first . ')'
+      echomsg '  Deno requirement: ' . (s:KDHasSupportedDeno() ? 'OK' : 'NOT MET')
+    endif
+
+    if exists('g:plugs') && has_key(g:plugs, 'ddc.vim')
+      let l:ddc_ready = filereadable(g:plugs['ddc.vim'].dir . '/autoload/ddc/custom.vim')
+      echomsg '  ddc.vim files: ' . (l:ddc_ready ? 'installed' : 'missing/incomplete')
+    else
+      echomsg '  ddc.vim: not declared for this Vim build'
+    endif
+  endfunction
+  command! KDCompletionHealth call <SID>KDCompletionHealth()
+
+  function! s:KDModernHealth() abort
+    echomsg 'Modern Vim health:'
+    echomsg '  fzf: ' . (executable('fzf') ? get(split(system('fzf --version 2>/dev/null'), "\n"), 0, 'available') : 'NOT FOUND (fzf.vim requires >= 0.54)')
+    echomsg '  ripgrep: ' . (executable('rg') ? get(split(system('rg --version 2>/dev/null'), "\n"), 0, 'available') : 'NOT FOUND (:Rg unavailable)')
+    echomsg '  ctags: ' . (executable('ctags') ? 'available' : 'NOT FOUND (Tagbar disabled)')
+    echomsg '  terraform: ' . (executable('terraform') ? 'available' : 'not installed')
+    echomsg '  helm: ' . (executable('helm') ? 'available' : 'not installed')
+    echomsg '  ansible-lint: ' . (executable('ansible-lint') ? 'available' : 'not installed')
+    echomsg '  yamllint: ' . (executable('yamllint') ? 'available' : 'not installed')
+    echomsg '  shellcheck: ' . (executable('shellcheck') ? 'available' : 'not installed')
+    echomsg '  ruff: ' . (executable('ruff') ? 'available' : 'not installed')
+    echomsg '  hadolint: ' . (executable('hadolint') ? 'available' : 'not installed')
+    echomsg '  tflint: ' . (executable('tflint') ? 'available' : 'not installed')
+    echomsg '  stale Syntastic: ' . (exists(':SyntasticCheck') ? 'LOADED - run :PlugClean, quit all Vim instances, then restart' : 'not loaded')
+  endfunction
+  command! KDModernHealth call <SID>KDModernHealth()
 
   set nocompatible        " Use Vim defaults rather than vi compatibility
   set background=dark     " Assume a dark background
@@ -157,6 +228,31 @@
     execute 'source ' . fnameescape(s:kd_before_local)
   endif
 " }
+
+" 2.5 AI platform boundary {
+  " GitHub Copilot ghost-text completion is supported on both Linux and macOS.
+  " The OpenAI Codex Vim command integration remains Linux-only in 2.5.
+  " The shared vimrc.before.local may list both bundle groups; on macOS only
+  " the Linux-only codex group is filtered out.
+  if MACOS() && exists('g:kd_bundle_groups')
+    call filter(g:kd_bundle_groups, "v:val !=# 'codex'")
+  endif
+
+  " ddc owns <Tab>; Copilot ghost text therefore uses its own accept key.
+  " These variables must be set before plug#end() loads copilot.vim.
+  if LINUX() || MACOS()
+    let g:copilot_no_tab_map = v:true
+    let g:copilot_hide_during_completion = 0
+  endif
+" }
+
+" 2.4 migration guard: Syntastic was replaced by ALE.  If an undeclared old
+" Syntastic directory is still present on runtimepath (for example in a Vim
+" session that sourced this vimrc without restarting), keep it passive so it
+" cannot invoke obsolete checkers.  Run :PlugClean and restart Vim to remove it.
+let g:syntastic_mode_map = {'mode': 'passive'}
+let g:syntastic_check_on_open = 0
+let g:syntastic_check_on_wq = 0
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => vim-plug Bootstrap
@@ -252,23 +348,12 @@
 " => vim-plug Plugins
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugins {
-  " Deps {
-      Plug 'MarcWeber/vim-addon-mw-utils'
-      Plug 'tomtom/tlib_vim'
-      if executable('ag') || executable('ack-grep') || executable('ack')
-        Plug 'mileszs/ack.vim'
-        if executable('ag')
-          let g:ackprg = 'ag --nogroup --nocolor --column --smart-case'
-        elseif executable('ack-grep')
-          let g:ackprg = 'ack-grep -H --nocolor --nogroup --column'
-        endif
-      endif
-  " }
+  " Dependencies are declared with the feature that needs them.
 
   " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if !exists('g:kd_bundle_groups')
-      let g:kd_bundle_groups = ['general', 'ddc', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'misc',]
+      let g:kd_bundle_groups = ['general', 'ddc', 'lsp', 'ale', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm', 'misc', 'github_copilot', 'codex',]
 
   endif
 
@@ -280,22 +365,18 @@
     " General {
       if count(g:kd_bundle_groups, 'general')
         Plug 'preservim/nerdtree'
-        Plug 'jistr/vim-nerdtree-tabs'
         Plug 'tpope/vim-surround'
         Plug 'tpope/vim-repeat'
-        Plug 'spf13/vim-autoclose'
-        Plug 'ctrlpvim/ctrlp.vim'
-        Plug 'tacahiroy/ctrlp-funky'
+        Plug 'cohama/lexima.vim'
+        Plug 'junegunn/fzf'
+        Plug 'junegunn/fzf.vim'
         Plug 'mg979/vim-visual-multi', { 'branch': 'master' }
         Plug 'easymotion/vim-easymotion'
-        if has('python') || has('python3')
-          Plug 'sjl/gundo.vim'
-        else
-          Plug 'mbbill/undotree'
-        endif
-        Plug 'nathanaelkane/vim-indent-guides'
-        Plug 'mhinz/vim-signify'
-        Plug 'bronson/vim-trailing-whitespace'
+        Plug 'mbbill/undotree'
+        Plug 'preservim/vim-indent-guides'
+        Plug 'airblade/vim-gitgutter'
+        Plug 'tpope/vim-sleuth'
+        Plug 'andymass/vim-matchup'
         if (has('python') || has('python3')) && exists('g:kd_use_powerline')
           Plug 'powerline/powerline', { 'rtp': 'powerline/bindings/vim' }
           Plug 'ryanoasis/vim-devicons'
@@ -307,13 +388,10 @@
           Plug 'vim-airline/vim-airline'
           Plug 'vim-airline/vim-airline-themes'
         endif
-        Plug 'powerline/fonts'
         Plug 'rhysd/conflict-marker.vim'
-        if !exists('g:kd_no_views')
-          Plug 'vim-scripts/restore_view.vim'
-        endif
         Plug 'osyo-manga/vim-over'
         Plug 'gcmt/wildfire.vim'
+        Plug 'fionn/grb256'
         Plug 'blackcobra1973/kd-vim-colors'
         Plug 'noahfrederick/vim-hemisu'
         Plug 'sjl/badwolf'
@@ -322,7 +400,6 @@
 
     " Extra General {
       if count(g:kd_bundle_groups, 'extra')
-        Plug 'jiangmiao/auto-pairs'
         Plug 'vim-scripts/sessionman.vim'
         Plug 'bling/vim-bufferline'
         Plug 'tpope/vim-abolish'
@@ -353,13 +430,8 @@
 
     " General Programming {
       if count(g:kd_bundle_groups, 'programming')
-        " Pick one of the checksyntax, jslint, or syntastic
-        Plug 'vim-syntastic/syntastic'
         Plug 'tpope/vim-fugitive'
-        Plug 'gregsexton/gitv'
-        Plug 'mattn/webapi-vim'
-        Plug 'mattn/gist-vim'
-        Plug 'preservim/nerdcommenter'
+        Plug 'junegunn/gv.vim'
         Plug 'tpope/vim-commentary'
         Plug 'godlygeek/tabular'
         Plug 'luochen1990/rainbow'
@@ -369,21 +441,57 @@
       endif
     " }
 
+    " GitHub Gist (optional) {
+      if count(g:kd_bundle_groups, 'gist')
+        Plug 'mattn/webapi-vim'
+        Plug 'mattn/gist-vim'
+      endif
+    " }
+
+    " GitHub Copilot AI ghost-text completion (Linux + macOS) {
+      if (LINUX() || MACOS()) && count(g:kd_bundle_groups, 'github_copilot')
+        Plug 'github/copilot.vim'
+      endif
+    " }
+
+    " Shared Denops runtime {
+      " ddc uses the shared denops runtime.
+      if count(g:kd_bundle_groups, 'ddc') && s:KDHasSupportedVimForDdc()
+        Plug 'vim-denops/denops.vim'
+      endif
+    " }
+
+    " Language Server Protocol {
+      if count(g:kd_bundle_groups, 'lsp')
+        Plug 'prabirshrestha/vim-lsp'
+        Plug 'mattn/vim-lsp-settings'
+        if count(g:kd_bundle_groups, 'ddc') && s:KDHasSupportedVimForDdc()
+          Plug 'shun/ddc-vim-lsp'
+        endif
+      endif
+    " }
+
+    " Asynchronous linting/fixing {
+      if count(g:kd_bundle_groups, 'ale')
+        Plug 'dense-analysis/ale'
+      endif
+    " }
+
     " Snippets & AutoComplete {
       if count(g:kd_bundle_groups, 'snipmate')
             \ || count(g:kd_bundle_groups, 'youcompleteme')
             \ || count(g:kd_bundle_groups, 'ddc')
-            \ || count(g:kd_bundle_groups, 'neocomplete')
         Plug 'honza/vim-snippets'
       endif
 
       if count(g:kd_bundle_groups, 'ddc')
-            \ || count(g:kd_bundle_groups, 'neocomplete')
         Plug 'Shougo/neosnippet.vim'
         Plug 'Shougo/neosnippet-snippets'
       endif
 
       if count(g:kd_bundle_groups, 'snipmate')
+        Plug 'MarcWeber/vim-addon-mw-utils'
+        Plug 'tomtom/tlib_vim'
         Plug 'garbas/vim-snipmate'
         " Source support_function.vim to support vim-snippets.
         if filereadable(g:kd_plugin_directory . '/vim-snippets/snippets/support_functions.vim')
@@ -393,10 +501,11 @@
         Plug 'ycm-core/YouCompleteMe'
         Plug 'SirVer/ultisnips'
       elseif count(g:kd_bundle_groups, 'ddc')
-        " Current ddc/denops releases require Vim 9.1.1646+ and Deno 2.3+.
-        " Only add the denops stack when the local Vim can actually load it.
-        if has('patch-9.1.1646') && s:KDHasSupportedDeno()
-          Plug 'vim-denops/denops.vim'
+        " Declare the ddc stack whenever Vim itself is capable of running it.
+        " Deno is intentionally NOT required at declaration time: this lets a
+        " clean host install the plugins first and add/repair Deno afterwards
+        " without changing the vim-plug plugin set.
+        if s:KDHasSupportedVimForDdc()
           Plug 'Shougo/ddc.vim'
           Plug 'Shougo/ddc-ui-native'
           Plug 'Shougo/ddc-source-around'
@@ -405,9 +514,6 @@
           Plug 'Shougo/ddc-filter-matcher_head'
           Plug 'Shougo/ddc-filter-sorter_rank'
         endif
-      elseif count(g:kd_bundle_groups, 'neocomplete')
-        " Legacy compatibility only. Prefer the 'ddc' group for new systems.
-        Plug 'Shougo/neocomplete.vim'
       endif
     " }
 
@@ -421,16 +527,12 @@
 
     " Python {
       if count(g:kd_bundle_groups, 'python')
-        " Pick either python-mode or pyflakes & pydoc
-        Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
-        Plug 'yssource/python.vim'
-        Plug 'vim-scripts/python_match.vim'
+        Plug 'vim-python/python-syntax'
       endif
     " }
 
     " Javascript {
       if count(g:kd_bundle_groups, 'javascript')
-        Plug 'elzr/vim-json'
         Plug 'groenewege/vim-less'
         Plug 'pangloss/vim-javascript'
         Plug 'briancollins/vim-jst'
@@ -448,24 +550,17 @@
 
     " Haskell {
       if count(g:kd_bundle_groups, 'haskell')
-        Plug 'travitch/hasksyn'
-        Plug 'dag/vim2hs'
-        Plug 'Twinside/vim-haskellConceal'
-        Plug 'Twinside/vim-haskellFold'
-        Plug 'lukerandall/haskellmode-vim'
-        Plug 'eagletmt/neco-ghc'
-        Plug 'eagletmt/ghcmod-vim'
-        Plug 'Shougo/vimproc.vim'
-        Plug 'adinapoli/cumino'
-        Plug 'bitc/vim-hdevtools'
+        " Syntax/indentation only; language intelligence is provided by
+        " haskell-language-server through vim-lsp-settings.
+        Plug 'neovimhaskell/haskell-vim'
       endif
     " }
 
     " HTML {
       if count(g:kd_bundle_groups, 'html')
-        Plug 'vim-scripts/HTML-AutoCloseTag'
+        Plug 'alvan/vim-closetag'
         Plug 'hail2u/vim-css3-syntax'
-        Plug 'gorodinskiy/vim-coloresque'
+        Plug 'ap/vim-css-color'
         Plug 'tpope/vim-haml'
         Plug 'mattn/emmet-vim'
       endif
@@ -499,20 +594,6 @@
       endif
     " }
 
-    " Git {
-      if count(g:kd_bundle_groups, 'gitonly')
-        " Disable vim-signify before using this one
-        Plug 'airblade/vim-gitgutter'
-      endif
-    " }
-
-    " Github Copilot {
-      if count(g:kd_bundle_groups, 'github_copilot')
-        "Plug 'yasuhiroki/github-actions-yaml.vim'
-        "Plug 'blackcobra1973/github-actions.vim'
-        Plug 'github/copilot.vim'
-      endif
-    " }
 
     " Elixir {
       if count(g:kd_bundle_groups, 'elixir')
@@ -523,8 +604,19 @@
     " }
 
     " Docker {
-      if count(g:kd_bundle_groups, 'docker')
-        Plug 'blackcobra1973/Dockerfile.vim'
+      " Modern Vim ships Dockerfile/Containerfile runtime support.
+      " The 'docker' group is retained for defaults, LSP and ALE selection.
+    " }
+
+    " Terraform {
+      if count(g:kd_bundle_groups, 'terraform')
+        Plug 'hashivim/vim-terraform'
+      endif
+    " }
+
+    " Helm {
+      if count(g:kd_bundle_groups, 'helm')
+        Plug 'towolf/vim-helm'
       endif
     " }
 
@@ -536,19 +628,16 @@
 
     " Markdown {
       if count(g:kd_bundle_groups, 'markdown')
-        "Plug 'tpope/vim-markdown'
-        Plug 'gabrielelana/vim-markdown'
-        "Plug 'dhruvasagar/vim-table-mode'
+        " preservim/vim-markdown expects Tabular to be available first.
+        Plug 'preservim/vim-markdown'
       endif
     " }
 
     " Misc {
       if count(g:kd_bundle_groups, 'misc')
         Plug 'rust-lang/rust.vim'
-        Plug 'spf13/vim-preview'
         Plug 'tpope/vim-cucumber'
         Plug 'quentindecock/vim-cucumber-align-pipes'
-        Plug 'saltstack/salt-vim'
       endif
     " }
 
@@ -567,9 +656,9 @@ call plug#end()
 " matchit ships with current Vim as an optional runtime package.
 silent! packadd! matchit
 
-" vim-plug enables filetype-specific indentation automatically.  The original
-" configuration intentionally uses filetype plugins without Vim indent files.
-filetype indent off
+" Modern Vim configuration: enable filetype plugins and indentation.
+" vim-sleuth may then refine indentation per project/buffer.
+filetype plugin indent on
 
 " Install missing plugins once Vim has completed startup.  This avoids running
 " PlugInstall recursively while the vimrc itself is still being sourced.
@@ -630,7 +719,10 @@ endif
 
   " Instead of reverting the cursor to the last position in the buffer, we
   " set it to the first line when editing a git commit message
-  autocmd FileType gitcommit au! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
+  augroup kd_gitcommit_cursor
+    autocmd!
+    autocmd FileType gitcommit call cursor(1, 1)
+  augroup END
 
   " Enable filetype plugins
   "filetype plugin on
@@ -684,6 +776,25 @@ endif
         \ '\[example pattern\]'
         \ ]
     endif
+
+    " Native replacement for restore_view.vim.
+    function! s:KDShouldRestoreView() abort
+      if exists('g:kd_no_views') || &buftype !=# '' || empty(expand('%:p'))
+        return 0
+      endif
+      for l:pattern in get(g:, 'skipview_files', [])
+        if expand('%:t') =~# l:pattern
+          return 0
+        endif
+      endfor
+      return 1
+    endfunction
+
+    augroup kd_native_views
+      autocmd!
+      autocmd BufWinLeave ?* if <SID>KDShouldRestoreView() | silent! mkview | endif
+      autocmd BufWinEnter ?* if <SID>KDShouldRestoreView() | silent! loadview | endif
+    augroup END
   " }
 " }
 
@@ -700,15 +811,26 @@ endif
     colorscheme solarized       " Load a colorscheme
   endif
 
-  " Add possibility to define the colorsheme in the .vimrc.before.local file
-  " Example: let g:kd_colorscheme = 'badwolf'
-  if !exists('g:kd_colorscheme')
-    "colorscheme grb256
-    "colorscheme hemisu
-    silent! colorscheme Tomorrow-Night-Bright
-  else
-    silent! exec 'colorscheme ' . g:kd_colorscheme
-  endif
+  " Apply the selected colorscheme without leaving a stale E185 in v:errmsg on
+  " a clean first start before vim-plug has installed color plugins.
+  function! s:KDApplyColorScheme() abort
+    let l:scheme = get(g:, 'kd_colorscheme', 'Tomorrow-Night-Bright')
+
+    " grb256 is intentionally a 256-colour terminal scheme.
+    if l:scheme ==# 'grb256' && exists('+termguicolors')
+      set notermguicolors
+    endif
+
+    try
+      execute 'colorscheme ' . fnameescape(l:scheme)
+    catch /^Vim\%((\a\+)\)\=:E185/
+      echohl WarningMsg
+      echomsg 'Colorscheme not available yet: ' . l:scheme . '. It will be available after :PlugInstall completes.'
+      echohl None
+      let v:errmsg = ''
+    endtry
+  endfunction
+  call s:KDApplyColorScheme()
 
   set tabpagemax=15               " Only show 15 tabs
   set modeline                    " Enable modeline (Vim settings in a file)
@@ -740,9 +862,6 @@ endif
     " Broken down into easily includeable segments
     set statusline=%<%f\                     " Filename
     set statusline+=%w%h%m%r                 " Options
-    if isdirectory(g:kd_plugin_directory . '/syntastic')
-      set statusline+=%{SyntasticStatuslineFlag()}  " Syntastic
-    endif
     if isdirectory(g:kd_plugin_directory . '/vim-fugitive')
       set statusline+=%{fugitive#statusline()} " Git Hotness
     endif
@@ -1137,7 +1256,6 @@ endif
         autocmd FileType python setlocal omnifunc=pythoncomplete#Complete
         autocmd FileType xml setlocal omnifunc=xmlcomplete#CompleteTags
         autocmd FileType ruby setlocal omnifunc=rubycomplete#Complete
-        autocmd FileType haskell setlocal omnifunc=necoghc#omnifunc
       augroup END
     endfunction
 
@@ -1155,20 +1273,6 @@ endif
       inoremap <expr><S-Tab> pumvisible() ? "\<C-p>" : "\<Tab>"
     endfunction
 
-    " Github Copilot {
-      if count(g:kd_bundle_groups, 'github_copilot')
-        " Enable GitHub Copilot for specific filetypes
-        let g:copilot_filetypes = {
-          \ '*': v:false,
-          \ 'terraform': v:true,
-          \ 'ansible': v:true,
-          \ 'python': v:true,
-          \ 'markdown': v:true,
-          \ 'yaml': v:true,
-          \ 'vim': v:true,
-          \ }
-      endif
-    " }
 
     " GoLang {
         if count(g:kd_bundle_groups, 'go')
@@ -1178,8 +1282,6 @@ endif
             let g:go_highlight_operators = 1
             let g:go_highlight_build_constraints = 1
             let g:go_fmt_command = "goimports"
-            let g:syntastic_go_checkers = ['golint', 'govet', 'errcheck']
-            let g:syntastic_mode_map = { 'mode': 'active', 'passive_filetypes': ['go'] }
             autocmd FileType go nmap <Leader>s <Plug>(go-implements)
             autocmd FileType go nmap <Leader>i <Plug>(go-info)
             autocmd FileType go nmap <Leader>e <Plug>(go-rename)
@@ -1269,10 +1371,14 @@ endif
         endif
     " }
 
-    " AutoCloseTag {
-        " Make it so AutoCloseTag works for xml and xhtml files as well
-        autocmd FileType xhtml,xml runtime ftplugin/html/autoclosetag.vim
-        nmap <Leader>ac <Plug>ToggleAutoCloseMappings
+    " vim-closetag {
+      if count(g:kd_bundle_groups, 'html')
+        let g:closetag_filenames = '*.html,*.xhtml,*.phtml,*.xml,*.js,*.jsx,*.ts,*.tsx'
+        let g:closetag_xhtml_filenames = '*.xhtml,*.xml,*.jsx,*.tsx'
+        let g:closetag_filetypes = 'html,xhtml,phtml,xml,javascript,javascriptreact,typescript,typescriptreact'
+        let g:closetag_xhtml_filetypes = 'xhtml,xml,javascriptreact,typescriptreact'
+        nnoremap <silent> <Leader>ac :CloseTagToggleBuffer<CR>
+      endif
     " }
 
     " SnipMate {
@@ -1281,16 +1387,14 @@ endif
         let g:snips_author = 'Steve Francia <steve.francia@gmail.com>'
     " }
 
-    " AutoClose {
-      if isdirectory(g:kd_plugin_directory . '/vim-autoclose/')
-        let g:autoclose_vim_commentmode = 1
-      endif
+    " lexima.vim {
+      " Default lexima rules cover (), [], {}, quotes and context-aware pairs.
+      " Add project-specific rules in ~/.vimrc.local when needed.
     " }
 
     " Nerd Tree {
         if isdirectory(g:kd_plugin_directory . '/nerdtree')
             map <F7>       :NERDTreeToggle<CR>
-            "map <C-e> <plug>NERDTreeTabsToggle<CR>
             map <leader>nb :NERDTreeFromBookmark
             map <leader>nf :NERDTreeFind<cr>
             "map <leader>e :NERDTreeFind<CR>
@@ -1303,7 +1407,6 @@ endif
             let NERDTreeMouseMode=2
             let NERDTreeShowHidden=1
             let NERDTreeKeepTreeInNewTab=1
-            let g:nerdtree_tabs_open_on_gui_startup=0
         endif
     " }
 
@@ -1338,69 +1441,30 @@ endif
     " }
 
     " JSON {
-        nmap <leader>jt <Esc>:%!python -m json.tool<CR><Esc>:set filetype=json<CR>
-        let g:vim_json_syntax_conceal = 0
-    " }
-
-    " PyMode {
-        " Disable if python support not present
-        if !has('python') && !has('python3')
-            let g:pymode = 0
-        endif
-
-        if isdirectory(g:kd_plugin_directory . '/python-mode')
-            let g:pymode_lint_checkers = ['pyflakes']
-            let g:pymode_trim_whitespaces = 0
-            let g:pymode_options = 0
-            let g:pymode_rope = 0
+        if executable('python3')
+          nnoremap <leader>jt <Esc>:%!python3 -m json.tool<CR><Esc>:set filetype=json<CR>
+        elseif executable('python')
+          nnoremap <leader>jt <Esc>:%!python -m json.tool<CR><Esc>:set filetype=json<CR>
         endif
     " }
 
-    " CTRL-P {
-        if isdirectory(g:kd_plugin_directory . '/ctrlp.vim/')
-          let g:ctrlp_working_path_mode = 0
-          "let g:ctrlp_working_path_mode = 'ra'
-
-          nnoremap <silent> <D-t> :CtrlP<CR>
-          nnoremap <silent> <D-r> :CtrlPMRU<CR>
-
-          "let g:ctrlp_map = '<c-f>'
-          "map <c-b> :CtrlPBuffer<cr>
-
-          let g:ctrlp_max_height = 20
-          "let g:ctrlp_custom_ignore = 'node_modules\|^\.DS_Store\|^\.git\|^\.coffee'
-
-          let g:ctrlp_custom_ignore = {
-            \ 'dir':  '\.git$\|\.hg$\|\.svn$',
-            \ 'file': '\.so$\|\.dylib$\|\.pyc$' }
-
-          if executable('ag')
-            let s:ctrlp_fallback = 'ag %s --nocolor -l -g ""'
-          elseif executable('ack-grep')
-            let s:ctrlp_fallback = 'ack-grep %s --nocolor -f'
-          elseif executable('ack')
-            let s:ctrlp_fallback = 'ack %s --nocolor -f'
-          else
-            let s:ctrlp_fallback = 'find %s -type f'
+    " FZF {
+      if isdirectory(g:kd_plugin_directory . '/fzf.vim/')
+        if executable('fzf')
+          let g:fzf_layout = { 'down': '40%' }
+          nnoremap <silent> <leader>ff :Files<CR>
+          nnoremap <silent> <leader>fg :GFiles<CR>
+          nnoremap <silent> <leader>fb :Buffers<CR>
+          nnoremap <silent> <leader>fl :Lines<CR>
+          nnoremap <silent> <leader>fh :History<CR>
+          nnoremap <silent> <leader>fc :Commits<CR>
+          if executable('rg')
+            nnoremap <silent> <leader>fr :Rg<CR>
           endif
-          if exists("g:ctrlp_user_command")
-            unlet g:ctrlp_user_command
-          endif
-          let g:ctrlp_user_command = {
-            \ 'types': {
-              \ 1: ['.git', 'cd %s && git ls-files . --cached --exclude-standard --others'],
-              \ 2: ['.hg', 'hg --cwd %s locate -I .'],
-              \ },
-              \ 'fallback': s:ctrlp_fallback
-            \ }
-
-          if isdirectory(g:kd_plugin_directory . '/ctrlp-funky/')
-            " CtrlP extensions
-            let g:ctrlp_extensions = ['funky']
-            "funky
-            nnoremap <Leader>fu :CtrlPFunky<Cr>
-          endif
+        else
+          echomsg 'fzf.vim installed, but fzf >= 0.54 is required on PATH.'
         endif
+      endif
     "}
 
     " TagBar {
@@ -1432,32 +1496,35 @@ endif
 
     " Fugitive {
       if isdirectory(g:kd_plugin_directory . '/vim-fugitive/')
-        nnoremap <silent> <leader>gs :Gstatus<CR>
-        nnoremap <silent> <leader>gd :Gdiff<CR>
-        nnoremap <silent> <leader>gc :Gcommit<CR>
-        nnoremap <silent> <leader>gb :Gblame<CR>
-        nnoremap <silent> <leader>gl :Glog<CR>
+        nnoremap <silent> <leader>gs :Git<CR>
+        nnoremap <silent> <leader>gd :Gdiffsplit<CR>
+        nnoremap <silent> <leader>gc :Git commit<CR>
+        nnoremap <silent> <leader>gb :Git blame<CR>
+        nnoremap <silent> <leader>gl :Gclog<CR>
         nnoremap <silent> <leader>gp :Git push<CR>
         nnoremap <silent> <leader>gr :Gread<CR>
-        "nnoremap <silent> <leader>gw :Gwrite<CR>
-        nnoremap <silent> <leader>gw :Gwrite<CR>:GitGutter<CR>
+        nnoremap <silent> <leader>gw :Gwrite<CR>
         nnoremap <silent> <leader>ge :Gedit<CR>
-        " Mnemonic _i_nteractive
         nnoremap <silent> <leader>gi :Git add -p %<CR>
-        nnoremap <silent> <leader>gg :SignifyToggle<CR>
-        "nnoremap <silent> <leader>gg :GitGutterToggle<CR>
+        if exists(':GitGutterToggle') == 2
+          nnoremap <silent> <leader>gg :GitGutterToggle<CR>
+          nmap <silent> ]h <Plug>(GitGutterNextHunk)
+          nmap <silent> [h <Plug>(GitGutterPrevHunk)
+          nmap <silent> <leader>hp <Plug>(GitGutterPreviewHunk)
+          nmap <silent> <leader>hs <Plug>(GitGutterStageHunk)
+          nmap <silent> <leader>hu <Plug>(GitGutterUndoHunk)
+        endif
       endif
     "}
 
-    " gitv {
-      if isdirectory(g:kd_plugin_directory . '/gitv/')
-        nnoremap <silent> <leader>gv :Gitv<CR>
-        nnoremap <silent> <leader>gV :Gitv!<CR>
+    " GV {
+      if isdirectory(g:kd_plugin_directory . '/gv.vim/')
+        nnoremap <silent> <leader>gv :GV<CR>
+        nnoremap <silent> <leader>gV :GV!<CR>
       endif
     "}
 
     if count(g:kd_bundle_groups, 'youcompleteme')
-          \ || count(g:kd_bundle_groups, 'neocomplete')
           \ || count(g:kd_bundle_groups, 'ddc')
       let g:acp_enableAtStartup = 0
     endif
@@ -1487,120 +1554,16 @@ endif
             " When enabled, there can be too much visual noise
             " especially when splits are used.
             set completeopt-=preview
-        endif
-    " }
-
-    " neocomplete {
-        if count(g:kd_bundle_groups, 'neocomplete')
-            let g:neocomplete#enable_at_startup = 1
-            let g:neocomplete#enable_smart_case = 1
-            let g:neocomplete#enable_auto_delimiter = 1
-            let g:neocomplete#max_list = 15
-            let g:neocomplete#force_overwrite_completefunc = 1
-
-
-            " Define dictionary.
-            let g:neocomplete#sources#dictionary#dictionaries = {
-                        \ 'default' : '',
-                        \ 'vimshell' : $HOME.'/.vimshell_hist',
-                        \ 'scheme' : $HOME.'/.gosh_completions'
-                        \ }
-
-            " Define keyword.
-            if !exists('g:neocomplete#keyword_patterns')
-                let g:neocomplete#keyword_patterns = {}
-            endif
-            let g:neocomplete#keyword_patterns['default'] = '\h\w*'
-
-            " Plugin key-mappings {
-                " These two lines conflict with the default digraph mapping of <C-K>
-                if !exists('g:kd_no_neosnippet_expand')
-                    imap <C-k> <Plug>(neosnippet_expand_or_jump)
-                    smap <C-k> <Plug>(neosnippet_expand_or_jump)
-                endif
-                if exists('g:kd_noninvasive_completion')
-                    call s:KDMapNonInvasiveCompletion()
-                else
-                    " <C-k> Complete Snippet
-                    " <C-k> Jump to next snippet point
-                    imap <silent><expr><C-k> neosnippet#expandable() ?
-                                \ "\<Plug>(neosnippet_expand_or_jump)" : (pumvisible() ?
-                                \ "\<C-e>" : "\<Plug>(neosnippet_expand_or_jump)")
-                    smap <TAB> <Right><Plug>(neosnippet_jump_or_expand)
-
-                    inoremap <expr><C-g> neocomplete#undo_completion()
-                    inoremap <expr><C-l> neocomplete#complete_common_string()
-                    "inoremap <expr><CR> neocomplete#complete_common_string()
-
-                    " <CR>: close popup
-                    " <s-CR>: close popup and save indent.
-                    inoremap <expr><s-CR> pumvisible() ? neocomplete#smart_close_popup()."\<CR>" : "\<CR>"
-
-                    function! CleverCr()
-                        if pumvisible()
-                            if neosnippet#expandable()
-                                let exp = "\<Plug>(neosnippet_expand)"
-                                return exp . neocomplete#smart_close_popup()
-                            else
-                                return neocomplete#smart_close_popup()
-                            endif
-                        else
-                            return "\<CR>"
-                        endif
-                    endfunction
-
-                    " <CR> close popup and save indent or expand snippet
-                    imap <expr> <CR> CleverCr()
-                    " <C-h>, <BS>: close popup and delete backword char.
-                    inoremap <expr><BS> neocomplete#smart_close_popup()."\<C-h>"
-                    inoremap <expr><C-y> neocomplete#smart_close_popup()
-                endif
-                " <Tab>/<S-Tab>: completion navigation.
-                call s:KDMapCompletionTabs()
-
-                " Courtesy of Matteo Cavalleri
-
-                function! CleverTab()
-                    if pumvisible()
-                        return "\<C-n>"
-                    endif
-                    let substr = strpart(getline('.'), 0, col('.') - 1)
-                    let substr = matchstr(substr, '[^ \t]*$')
-                    if strlen(substr) == 0
-                        " nothing to match on empty string
-                        return "\<Tab>"
-                    else
-                        " existing text matching
-                        if neosnippet#expandable_or_jumpable()
-                            return "\<Plug>(neosnippet_expand_or_jump)"
-                        else
-                            return neocomplete#start_manual_complete()
-                        endif
-                    endif
-                endfunction
-
-                imap <expr> <Tab> CleverTab()
-            " }
-
-            " Enable heavy omni completion.
-            if !exists('g:neocomplete#sources#omni#input_patterns')
-                let g:neocomplete#sources#omni#input_patterns = {}
-            endif
-            let g:neocomplete#sources#omni#input_patterns.php = '[^. \t]->\h\w*\|\h\w*::'
-            let g:neocomplete#sources#omni#input_patterns.perl = '\h\w*->\h\w*\|\h\w*::'
-            let g:neocomplete#sources#omni#input_patterns.c = '[^.[:digit:] *\t]\%(\.\|->\)'
-            let g:neocomplete#sources#omni#input_patterns.cpp = '[^.[:digit:] *\t]\%(\.\|->\)\|\h\w*::'
-            let g:neocomplete#sources#omni#input_patterns.ruby = '[^. *\t]\.\h\w*\|\h\w*::'
     " }
 
     " ddc.vim {
         elseif count(g:kd_bundle_groups, 'ddc')
             " Current denops/ddc requires Vim 9.1.1646+ and Deno 2.3+.
-            " If either prerequisite is missing, retain native omni-completion
-            " instead of failing Vim startup.
-            if !has('patch-9.1.1646')
+            " If a prerequisite or the plugin itself is unavailable, retain
+            " native omni-completion instead of failing Vim startup.
+            if !s:KDHasSupportedVimForDdc()
                 echohl WarningMsg
-                echomsg 'ddc.vim disabled: Vim 9.1.1646 or newer is required; using native omni-completion.'
+                echomsg 'ddc.vim disabled: current ddc/denops requires Vim 9.1.1646+ with +job and +channel; using vim-lsp/native omni-completion. Debian 13 stock Vim 9.1.1230/1244 is below this minimum; Vim 9.2 is supported. Run :KDCompletionHealth for details.'
                 echohl None
                 call s:KDEnableLanguageOmniComplete()
             elseif !executable('deno')
@@ -1610,32 +1573,47 @@ endif
                 call s:KDEnableLanguageOmniComplete()
             elseif !s:KDHasSupportedDeno()
                 echohl WarningMsg
-                echomsg 'ddc.vim disabled: Deno 2.3 or newer is required; using native omni-completion.'
+                echomsg 'ddc.vim disabled: Deno 2.3+ is unavailable or failed to execute; using native omni-completion.'
                 echohl None
+                call s:KDEnableLanguageOmniComplete()
+            elseif !exists('g:plugs') || !has_key(g:plugs, 'ddc.vim')
+                        \ || !filereadable(g:plugs['ddc.vim'].dir . '/autoload/ddc/custom.vim')
+                        \ || !filereadable(g:plugs['ddc.vim'].dir . '/autoload/ddc.vim')
+                " First startup after vim-plug bootstrap, or an incomplete plugin
+                " installation: do not call ddc autoload functions until the actual
+                " ddc files exist. PlugInstall runs on VimEnter and re-sources this
+                " vimrc; until then native omni-completion is safe.
                 call s:KDEnableLanguageOmniComplete()
             else
                 " Preserve the previous completion behavior: buffer words,
                 " omnifunc results, snippets and file paths.
                 call s:KDEnableLanguageOmniComplete()
                 call ddc#custom#patch_global('ui', 'native')
-                call ddc#custom#patch_global('sources', ['around', 'omni', 'neosnippet', 'file'])
-                call ddc#custom#patch_global('sourceOptions', #{
-                  \ _: #{
-                  \   matchers: ['matcher_head'],
-                  \   sorters: ['sorter_rank'],
-                  \   keywordPattern: '\h\w*',
+                let s:kd_ddc_sources = ['around', 'omni', 'neosnippet', 'file']
+                if count(g:kd_bundle_groups, 'lsp')
+                      \ && exists('g:plugs') && has_key(g:plugs, 'ddc-vim-lsp')
+                      \ && isdirectory(g:plugs['ddc-vim-lsp'].dir)
+                  call insert(s:kd_ddc_sources, 'vim-lsp', 0)
+                endif
+                call ddc#custom#patch_global('sources', s:kd_ddc_sources)
+                call ddc#custom#patch_global('sourceOptions', {
+                  \ '_': {
+                  \   'matchers': ['matcher_head'],
+                  \   'sorters': ['sorter_rank'],
+                  \   'keywordPattern': '\h\w*',
                   \ },
-                  \ around: #{ mark: 'A' },
-                  \ omni: #{ mark: 'O' },
-                  \ neosnippet: #{ mark: 'S', dup: 'keep' },
-                  \ file: #{
-                  \   mark: 'F',
-                  \   isVolatile: v:true,
-                  \   forceCompletionPattern: '\S/\S*',
+                  \ 'vim-lsp': { 'mark': 'L' },
+                  \ 'around': { 'mark': 'A' },
+                  \ 'omni': { 'mark': 'O' },
+                  \ 'neosnippet': { 'mark': 'S', 'dup': 'keep' },
+                  \ 'file': {
+                  \   'mark': 'F',
+                  \   'isVolatile': v:true,
+                  \   'forceCompletionPattern': '\S/\S*',
                   \ },
                   \ })
-                call ddc#custom#patch_global('sourceParams', #{
-                  \ around: #{ maxSize: 500 },
+                call ddc#custom#patch_global('sourceParams', {
+                  \ 'around': { 'maxSize': 500 },
                   \ })
 
                 if !exists('g:kd_ddc_auto_complete_delay')
@@ -1695,8 +1673,7 @@ endif
     " }
 
     " Snippets {
-        if count(g:kd_bundle_groups, 'ddc') ||
-          \ count(g:kd_bundle_groups, 'neocomplete')
+        if count(g:kd_bundle_groups, 'ddc')
 
           " Use honza's snippets.
           "let g:neosnippet#snippets_directory='~/.vim/plugged/vim-snippets/snippets'
@@ -1721,75 +1698,350 @@ endif
         endif
     " }
 
-    " FIXME: Isn't this for Syntastic to handle?
-    " Haskell post write lint and check with ghcmod
-    " $ `cabal install ghcmod` if missing and ensure
-    " ~/.cabal/bin is in your $PATH.
-    augroup kd_haskell_lint
-      autocmd!
-      if !executable('ghcmod')
-        autocmd BufWritePost *.hs GhcModCheckAndLintAsync
-      endif
-    augroup END
 
-    " UndoTree {
+    " Undotree {
         if isdirectory(g:kd_plugin_directory . '/undotree/')
-            nnoremap <Leader>u :UndotreeToggle<CR>
-            " If undotree is opened, it is likely one wants to interact with it.
-            let g:undotree_SetFocusWhenToggle=1
+          " Keep F5 and the existing leader shortcut for undo-tree access.
+          nnoremap <F5> :UndotreeToggle<CR>
+          nnoremap <Leader>u :UndotreeToggle<CR>
+
+          " Focus the history window immediately after opening it.
+          let g:undotree_SetFocusWhenToggle = 1
+
         endif
     " }
 
-    " Gundo {
-        if isdirectory(g:kd_plugin_directory . '/gundo.vim/')
-          if has("python3")
-            let g:gundo_prefer_python3 = 1
-          elseif !has("python")
-            call janus#disable_plugin("gundo", s:no_python_support)
-          endif
-
-          if version >= 703
-            nnoremap <F5> :GundoToggle<CR>
-          endif
-
-          if version < 703
-            let g:gundo_disable=1
-          endif
+    " vim-lsp {
+      if count(g:kd_bundle_groups, 'lsp')
+        if has('patch-8.2.4780')
+          let g:lsp_use_native_client = 1
         endif
+        let g:lsp_diagnostics_enabled = 1
+        let g:lsp_document_highlight_enabled = 1
+        let g:lsp_signature_help_enabled = 1
+        let g:lsp_inlay_hints_enabled = 0
+
+        function! s:KDOnLspBufferEnabled() abort
+          " Keep useful LSP completion even when ddc is unavailable (for example
+          " stock Debian 13 Vim below ddc's current minimum).
+          setlocal omnifunc=lsp#complete
+          setlocal signcolumn=yes
+          if exists('+tagfunc')
+            setlocal tagfunc=lsp#tagfunc
+          endif
+          nmap <buffer> gd <Plug>(lsp-definition)
+          nmap <buffer> gr <Plug>(lsp-references)
+          nmap <buffer> gi <Plug>(lsp-implementation)
+          nmap <buffer> gt <Plug>(lsp-type-definition)
+          nmap <buffer> K <Plug>(lsp-hover)
+          nmap <buffer> <leader>rn <Plug>(lsp-rename)
+          nmap <buffer> [g <Plug>(lsp-previous-diagnostic)
+          nmap <buffer> ]g <Plug>(lsp-next-diagnostic)
+          nnoremap <buffer> <leader>ca :LspCodeAction<CR>
+          nnoremap <buffer> <leader>lf :LspDocumentFormat<CR>
+        endfunction
+
+        augroup kd_lsp
+          autocmd!
+          autocmd User lsp_buffer_enabled call <SID>KDOnLspBufferEnabled()
+        augroup END
+      endif
     " }
 
-    " Syntastic {
-        if isdirectory(g:kd_plugin_directory . '/syntastic/')
-          " If enabled, syntastic will do syntax checks when buffers are first loaded as
-          " well as on saving >
-          let g:syntastic_check_on_open=1
+    " ALE {
+      if count(g:kd_bundle_groups, 'ale')
+        " vim-lsp owns LSP; ALE is dedicated to asynchronous external linters/fixers.
+        let g:ale_disable_lsp = 1
+        let g:ale_linters_explicit = 1
+        let g:ale_lint_on_text_changed = 'never'
+        let g:ale_lint_on_insert_leave = 1
+        let g:ale_lint_on_save = 1
+        let g:ale_lint_on_enter = 1
+        let g:ale_echo_msg_format = '[%linter%] %severity%: %s'
+        let g:ale_sign_error = '✗'
+        let g:ale_sign_warning = '⚠'
+        " ansible-vim detects playbooks as yaml.ansible.  Alias that compound
+        " filetype to both ALE backends so yamllint and ansible-lint run.
+        let g:ale_linter_aliases = {
+          \ 'yaml.ansible': ['yaml', 'ansible'],
+          \ }
+        let g:ale_linters = {
+          \ 'yaml.ansible': ['yamllint', 'ansible_lint'],
+          \ 'ansible': ['ansible_lint'],
+          \ 'yaml': ['yamllint'],
+          \ 'python': ['ruff'],
+          \ 'sh': ['shellcheck'],
+          \ 'dockerfile': ['hadolint'],
+          \ 'terraform': ['terraform', 'tflint'],
+          \ }
+        let g:ale_fixers = {
+          \ '*': ['remove_trailing_lines', 'trim_whitespace'],
+          \ 'python': ['ruff_format'],
+          \ 'terraform': ['terraform'],
+          \ }
+        " 2.5 reserves <leader>a... for Codex AI actions.
+        nnoremap <silent> <leader>zl :ALELint<CR>
+        nnoremap <silent> <leader>zf :ALEFix<CR>
+        nnoremap <silent> <leader>zn :ALENextWrap<CR>
+        nnoremap <silent> <leader>zp :ALEPreviousWrap<CR>
+      endif
+    " }
 
-          " Normally syntastic runs syntax checks whenever buffers are written to disk.
-          " If you want to skip these checks when you issue |:wq|, |:x|, and |:ZZ|, set this
-          " variable to 0. >
-          "let g:syntastic_check_on_wq=0
+    " Linux/macOS AI integrations {
+      " Architecture:
+      "   - github/copilot.vim: continuous inline/multiline ghost-text prediction
+      "     on both Linux and macOS.
+      "   - OpenAI Codex CLI: deliberate explain/fix/refactor/edit/test/review tasks
+      "     on Linux only in the 2.5 design.
+      "   - ddc/LSP remain the normal semantic completion stack.
+      " MobaXterm/Windows remains AI-free in its separate vimrc.
 
-          " If enabled, syntastic will echo the error associated with the current line to
-          " the command window. If multiple errors are found, the first will be used. >
-          let g:syntastic_echo_current_error=1
+      " GitHub Copilot {
+        if (LINUX() || MACOS()) && count(g:kd_bundle_groups, 'github_copilot')
+          if isdirectory(g:kd_plugin_directory . '/copilot.vim/')
+            " Keep ddc's <Tab> mapping. Ctrl-G accepts the complete ghost-text
+            " suggestion; Copilot's standard Alt mappings remain available for
+            " next/previous suggestion, next word, next line and manual request.
+            imap <silent><script><expr> <C-G> copilot#Accept('')
 
-          " Use this option to tell syntastic whether to use the |:sign| interface to mark
-          " syntax errors: >
-          let g:syntastic_enable_signs=1
-
-          let g:syntastic_error_symbol='✗'
-          let g:syntastic_warning_symbol='⚠'
-
-          "let g:syntastic_full_redraws=0
-
-          " Use this option to tell syntastic whether to display error messages in balloons
-          " when the mouse is hovered over erroneous lines: >
-          let g:syntastic_enable_balloons = 1
-
-          " Use this option to tell syntastic whether to use syntax highlighting to mark
-          " errors (where possible). Highlighting can be turned off with the following >
-          let g:syntastic_enable_highlighting = 1
+            nnoremap <silent> <leader>cp :Copilot panel<CR>
+            nnoremap <silent> <leader>cs :Copilot status<CR>
+            nnoremap <silent> <leader>ce :Copilot enable<CR>
+            nnoremap <silent> <leader>cd :Copilot disable<CR>
+            nnoremap <silent> <leader>cm :Copilot model<CR>
+            nnoremap <silent> <leader>cu :Copilot upgrade<CR>
+          endif
         endif
+      " }
+
+      " Cross-platform AI health (Copilot on Linux/macOS; Codex on Linux only) {
+        if (LINUX() || MACOS()) && count(g:kd_bundle_groups, 'github_copilot')
+          function! s:KDAIStatus() abort
+            echomsg 'Vim AI 2.5 status:'
+            echomsg '  platform: ' . (LINUX() ? 'Linux' : 'macOS')
+            echomsg '  Copilot plugin: ' . (isdirectory(g:kd_plugin_directory . '/copilot.vim/') ? 'installed' : 'missing')
+            echomsg '  Node.js: ' . (executable('node') ? substitute(system('node --version'), '\n\+$', '', '') : 'NOT FOUND')
+            if exists(':Copilot') == 2
+              echomsg '  Copilot command: available (run :Copilot status for service state)'
+            else
+              echomsg '  Copilot command: unavailable'
+            endif
+            if LINUX() && count(g:kd_bundle_groups, 'codex')
+              if executable('codex')
+                echomsg '  Codex: ' . substitute(system('codex --version 2>/dev/null'), '\n\+$', '', '')
+                let l:auth = system('codex login status 2>&1')
+                echomsg '  Codex auth: ' . substitute(l:auth, '\n\+$', '', '')
+              else
+                echomsg '  Codex: NOT FOUND'
+              endif
+            else
+              echomsg '  Codex Vim integration: disabled on macOS in 2.5'
+            endif
+          endfunction
+
+          command! AIStatus call <SID>KDAIStatus()
+          command! KDAIHealth call <SID>KDAIStatus()
+          nnoremap <silent> <leader>as :AIStatus<CR>
+        endif
+      " }
+
+      " OpenAI Codex CLI {
+        if LINUX() && count(g:kd_bundle_groups, 'codex')
+          function! s:KDCodexRepoRoot() abort
+            let l:start = expand('%:p:h')
+            if empty(l:start)
+              let l:start = getcwd()
+            endif
+            if executable('git')
+              let l:out = systemlist('git -C ' . shellescape(l:start) . ' rev-parse --show-toplevel 2>/dev/null')
+              if v:shell_error == 0 && !empty(l:out) && !empty(l:out[0])
+                return l:out[0]
+              endif
+            endif
+            return getcwd()
+          endfunction
+
+          function! s:KDCodexContext(line1, line2, whole_file) abort
+            let l:file = expand('%:p')
+            if empty(l:file)
+              return 'the current repository'
+            endif
+            if a:whole_file
+              return 'the entire file ' . l:file
+            endif
+            if a:line1 != a:line2
+              return printf('%s lines %d-%d', l:file, a:line1, a:line2)
+            endif
+            return printf('%s line %d', l:file, a:line1)
+          endfunction
+
+          function! s:KDCodexPromptArgument(given, label) abort
+            if !empty(a:given)
+              return a:given
+            endif
+            return input(a:label . ': ')
+          endfunction
+
+          function! s:KDCodexShellCommand(args) abort
+            return join(map(copy(a:args), 'shellescape(v:val)'), ' ')
+          endfunction
+
+          function! s:KDCodexExit(job, status) abort
+            silent! checktime
+            if a:status == 0
+              echomsg 'Codex task completed. External file changes were checked.'
+            else
+              echohl WarningMsg
+              echomsg 'Codex exited with status ' . a:status . '. Review the Codex terminal output.'
+              echohl None
+            endif
+          endfunction
+
+          function! s:KDCodexRun(prompt, writable) abort
+            if !executable('codex')
+              echohl WarningMsg
+              echomsg 'Codex CLI not found in PATH. Install it and run: codex login'
+              echohl None
+              return
+            endif
+
+            " Codex reads the working tree from disk. Avoid silently sending stale
+            " buffer content or overwriting unsaved edits.
+            if &modified
+              echohl WarningMsg
+              echomsg 'Save the current buffer before starting a Codex task.'
+              echohl None
+              return
+            endif
+
+            let l:root = s:KDCodexRepoRoot()
+            let l:sandbox = a:writable ? 'workspace-write' : 'read-only'
+            let l:args = ['codex', 'exec', '--ephemeral', '--sandbox', l:sandbox, '-C', l:root, a:prompt]
+
+            if exists('*term_start') && has('terminal')
+              botright new
+              setlocal noswapfile
+              execute 'file ' . fnameescape('[Codex ' . (a:writable ? 'write' : 'read-only') . ']')
+              call term_start(l:args, {
+                    \ 'curwin': 1,
+                    \ 'term_finish': 'open',
+                    \ 'exit_cb': function('<SID>KDCodexExit'),
+                    \ })
+              startinsert
+            else
+              execute '!' . s:KDCodexShellCommand(l:args)
+              silent! checktime
+            endif
+          endfunction
+
+          function! s:KDCodexAction(action, line1, line2, whole_file, qargs) abort
+            let l:context = s:KDCodexContext(a:line1, a:line2, a:whole_file)
+
+            if a:action ==# 'ask'
+              let l:user = s:KDCodexPromptArgument(a:qargs, 'Ask Codex')
+              if empty(l:user) | return | endif
+              call s:KDCodexRun('Answer this question about the repository and ' . l:context . ': ' . l:user . '. Do not modify files.', 0)
+            elseif a:action ==# 'explain'
+              let l:user = empty(a:qargs) ? 'Explain what this code does, important assumptions, and likely failure modes.' : a:qargs
+              call s:KDCodexRun('Inspect ' . l:context . '. ' . l:user . ' Do not modify files.', 0)
+            elseif a:action ==# 'edit'
+              let l:user = s:KDCodexPromptArgument(a:qargs, 'Edit instruction')
+              if empty(l:user) | return | endif
+              call s:KDCodexRun('Modify ' . l:context . ' according to this instruction: ' . l:user . '. Preserve unrelated behavior and run appropriate validation.', 1)
+            elseif a:action ==# 'fix'
+              let l:user = empty(a:qargs) ? 'Find and fix the defect in this context. Keep the change minimal and validate it.' : a:qargs
+              call s:KDCodexRun('Work on ' . l:context . '. ' . l:user, 1)
+            elseif a:action ==# 'refactor'
+              let l:user = s:KDCodexPromptArgument(a:qargs, 'Refactor goal')
+              if empty(l:user) | return | endif
+              call s:KDCodexRun('Refactor ' . l:context . ' with this goal: ' . l:user . '. Preserve behavior and run appropriate validation.', 1)
+            elseif a:action ==# 'test'
+              let l:user = empty(a:qargs) ? 'Add or improve the most relevant tests for this context and run them.' : a:qargs
+              call s:KDCodexRun('Work on ' . l:context . '. ' . l:user, 1)
+            elseif a:action ==# 'document'
+              let l:user = empty(a:qargs) ? 'Improve the code comments or documentation for this context without changing runtime behavior.' : a:qargs
+              call s:KDCodexRun('Work on ' . l:context . '. ' . l:user, 1)
+            elseif a:action ==# 'prompt'
+              let l:user = s:KDCodexPromptArgument(a:qargs, 'Codex repository task')
+              if empty(l:user) | return | endif
+              call s:KDCodexRun(l:user, 1)
+            endif
+          endfunction
+
+          function! s:KDCodexGitReview() abort
+            call s:KDCodexRun('Review the current Git worktree changes. Identify correctness, security, reliability, maintainability, and test gaps. Prioritize concrete findings and do not modify files.', 0)
+          endfunction
+
+          function! s:KDCodexOpen() abort
+            if !executable('codex')
+              echohl WarningMsg
+              echomsg 'Codex CLI not found in PATH.'
+              echohl None
+              return
+            endif
+            let l:args = ['codex', '-C', s:KDCodexRepoRoot()]
+            if exists('*term_start') && has('terminal')
+              botright new
+              setlocal noswapfile
+              execute 'file ' . fnameescape('[Codex interactive]')
+              call term_start(l:args, {'curwin': 1, 'term_finish': 'open'})
+              startinsert
+            else
+              execute '!' . s:KDCodexShellCommand(l:args)
+            endif
+          endfunction
+
+          command! -range -nargs=* AIAsk      call <SID>KDCodexAction('ask',      <line1>, <line2>, 0, <q-args>)
+          command! -bang -range -nargs=* AIEdit     call <SID>KDCodexAction('edit',     <line1>, <line2>, <bang>0, <q-args>)
+          command! -range -nargs=* AIExplain  call <SID>KDCodexAction('explain',  <line1>, <line2>, 0, <q-args>)
+          command! -bang -range -nargs=* AIFix      call <SID>KDCodexAction('fix',      <line1>, <line2>, <bang>0, <q-args>)
+          command! -bang -range -nargs=* AIRefactor call <SID>KDCodexAction('refactor', <line1>, <line2>, <bang>0, <q-args>)
+          command! -bang -range -nargs=* AITest     call <SID>KDCodexAction('test',     <line1>, <line2>, <bang>0, <q-args>)
+          command! -bang -range -nargs=* AIDocument call <SID>KDCodexAction('document', <line1>, <line2>, <bang>0, <q-args>)
+          command! AIGitReview call <SID>KDCodexGitReview()
+          command! -nargs=* AIPrompt call <SID>KDCodexAction('prompt', line('.'), line('.'), 0, <q-args>)
+          command! AIOpen call <SID>KDCodexOpen()
+
+          " Finalized 2.5 Codex namespace from the AI design.
+          nnoremap <leader>aa :AIAsk<Space>
+          nnoremap <leader>ae :AIEdit<Space>
+          nnoremap <silent> <leader>ax :AIExplain<CR>
+          nnoremap <silent> <leader>af :AIFix<CR>
+          nnoremap <leader>ar :AIRefactor<Space>
+          nnoremap <silent> <leader>at :AITest<CR>
+          nnoremap <silent> <leader>ad :AIDocument<CR>
+          nnoremap <silent> <leader>ag :AIGitReview<CR>
+          nnoremap <leader>ap :AIPrompt<Space>
+          nnoremap <silent> <leader>ao :AIOpen<CR>
+
+          xnoremap <leader>ae :AIEdit<Space>
+          xnoremap <silent> <leader>ax :AIExplain<CR>
+          xnoremap <silent> <leader>af :AIFix<CR>
+          xnoremap <leader>ar :AIRefactor<Space>
+          xnoremap <silent> <leader>at :AITest<CR>
+          xnoremap <silent> <leader>ad :AIDocument<CR>
+        endif
+      " }
+    " }
+
+    " Terraform {
+      if count(g:kd_bundle_groups, 'terraform')
+        let g:terraform_fmt_on_save = 1
+        let g:terraform_align = 1
+        nnoremap <silent> <leader>tf :TerraformFmt<CR>
+        nnoremap <silent> <leader>tv :Terraform validate<CR>
+      endif
+    " }
+
+    " Helm {
+      if count(g:kd_bundle_groups, 'helm')
+        " towolf/vim-helm provides Helm template filetype/syntax. helm-ls can
+        " be installed from a Helm buffer with :LspInstallServer.
+        if executable('helm')
+          nnoremap <silent> <leader>hl :!helm lint %:p:h<CR>
+          nnoremap <silent> <leader>ht :!helm template %:p:h<CR>
+        endif
+      endif
     " }
 
     " VIM Indent_Guides {
@@ -1851,11 +2103,11 @@ endif
                 \ }
 
           function! LightlineModified()
-            return &ft =~ 'help\|vimfiler\|gundo' ? '' : &modified ? '+' : &modifiable ? '' : '-'
+            return &ft =~ 'help\|vimfiler\|undotree' ? '' : &modified ? '+' : &modifiable ? '' : '-'
           endfunction
 
           function! LightlineReadonly()
-            return &ft !~? 'help\|vimfiler\|gundo' && &readonly ? '' : ''
+            return &ft !~? 'help\|vimfiler\|undotree' && &readonly ? '' : ''
           endfunction
 
           function! LightlineFilename()
@@ -1868,7 +2120,7 @@ endif
           endfunction
 
           function! LightlineFugitive()
-            if &ft !~? 'vimfiler\|gundo' && exists("*fugitive#head")
+            if &ft !~? 'vimfiler\|undotree' && exists("*fugitive#head")
               let branch = fugitive#head()
               "return branch !=# '' ? '⎇ '.branch : ''
               return branch !=# '' ? ' '.branch : ''
@@ -1963,8 +2215,7 @@ endif
             return '[' . a:name . ']'
           endfunction
 
-          " enable/disable syntastic integration
-          let g:airline#extensions#syntastic#enabled = 1
+          " ALE integrates with Airline automatically when both are loaded.
 
           " enable/disable tagbar integration
           let g:airline#extensions#tagbar#enabled = 1
