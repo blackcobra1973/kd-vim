@@ -1,13 +1,120 @@
-# Vim Configuration 2.6.0.2
+# Vim Configuration 2.6.0.6
 
 A modern classic-Vim configuration for Linux, macOS, and MobaXterm, with a single Vim9-native LSP client, externally managed language servers, ALE linting/fixing, Terraform/Helm/Ansible support, and optional AI integration.
 
-**Release:** 2.6.0.2  
+**Release:** 2.6.0.6  
 **Date:** 2026-08-23  
 **Primary LSP client:** `yegappan/lsp`  
-**Language-server manager:** `tools/lsp/lsp-manager.sh` 1.0.1
+**Language-server manager:** `tools/lsp/lsp-manager.sh` 1.0.3
 
 ---
+
+### 2.6.0.6 package layout cleanup
+
+Vim 2.6.0.6 keeps the Vim configuration and Markdown documentation in the
+package root, while support executables are grouped by purpose:
+
+```text
+scripts/
+├── install-vim-ai-linux.sh
+├── install-vim-ai-linux-1.0.1.sh
+├── install-vim-copilot-macos.sh
+└── install-vim-copilot-macos-1.0.0.sh
+
+tools/lsp/
+├── lsp-manager.sh
+├── versions.conf
+├── npm/
+│   ├── package.json
+│   └── package-lock.json
+└── history/
+    ├── lsp-manager-1.0.0-to-1.0.1.diff
+    ├── lsp-manager-1.0.2-to-1.0.3.diff
+    ├── lsp-npm-lock-2.6.0.0-to-2.6.0.1.diff
+    └── lsp-npm-package-2.6.0.0-to-2.6.0.1.diff
+```
+
+The duplicate LSP payload files that previously existed in the package root
+have been removed. `tools/lsp/` is now the only canonical location for the LSP
+manager, pinned versions, and npm seed files.
+
+The Vim configuration itself is unchanged from 2.6.0.5.
+
+---
+
+### 2.6.0.5 Ansible boolean-style and LSP-manager hardening
+
+Vim 2.6.0.5 suppresses a third yamllint policy rule for Ansible buffers:
+`truthy`. This rule is a style/policy check, not a YAML parser validity check.
+For this profile Ansible playbooks may use YAML boolean spellings such as
+`True`, `False`, `yes`, and `no`, so Vim no longer reports:
+
+```text
+truthy value should be one of [false, true]
+```
+
+The Ansible-only `yamllint_ansible` command now disables exactly these three
+rules:
+
+- `line-length`
+- `comments-indentation`
+- `truthy`
+
+Generic YAML files keep the normal yamllint policy.
+
+The LSP manager is version 1.0.3. The 2.6.0.4 release archive already contained
+the corrected 1.0.2 wrapper code, so seeing `line 180: name: unbound variable`
+with 2.6.0.4 means an older `tools/lsp/lsp-manager.sh` remained in the checkout.
+Manager 1.0.3 makes this mismatch obvious by printing its version before each
+operation and hardens wrapper/release helper argument handling. Before
+installing, verify:
+
+```bash
+tools/lsp/lsp-manager.sh --help | head -n 1
+```
+
+Expected:
+
+```text
+lsp-manager.sh 1.0.3
+```
+
+Then:
+
+```bash
+tools/lsp/lsp-manager.sh install --profile standard
+```
+
+---
+
+### 2.6.0.4 Ansible lint-noise fix
+
+Vim 2.6.0.4 permanently suppresses two style-only diagnostics in Ansible
+playbooks:
+
+- `line-length` / `line too long (... > 80 characters)`
+- `comments-indentation` / `comment not indented like content`
+
+The root cause in 2.6.0.2/2.6.0.3 was ALE's handling of compound Vim
+filetypes. `yaml.ansible` is split internally into `yaml` and `ansible`
+components, so the previous global `yaml.ansible` linter selection did not
+prevent ALE from selecting the generic `yaml` `yamllint` linter.
+
+2.6.0.4 fixes this at three layers:
+
+1. `FileType yaml.ansible` sets buffer-local ALE aliases/linters, which take
+   precedence over global settings and force both compound-filetype components
+   through the Ansible linter namespace.
+2. The dedicated `yamllint_ansible` command disables both `line-length` and
+   `comments-indentation`.
+3. The ALE callback and Ansible LSP diagnostic filter drop only those two rule
+   codes/messages as a final guard.
+
+All other Ansible/YAML diagnostics remain enabled.
+
+### 2.6.0.3 LSP manager shell fix
+
+The LSP manager 1.0.3 includes the 1.0.2 Bash `set -u` fix and additionally prints its version before operations so stale manager files are immediately visible. The original 1.0.2 fix addressed failures caused by dependent variables declared in the same `local` statement. In particular, npm wrapper generation no longer fails with `name: unbound variable`, and GitHub release digest lookup is protected from the same issue. If a 2.6.0.2 install stopped after npm packages were installed, simply replace the manager and rerun `tools/lsp/lsp-manager.sh install --profile standard`; the private Node/npm state is reusable.
 
 ## 1. What changed in Vim 2.6
 
@@ -871,15 +978,31 @@ ansible-lint
 yamllint
 ```
 
-For Ansible buffers only, yamllint's generic `line-length` rule is disabled by a dedicated ALE linter named `yamllint_ansible`. The rule is embedded directly in the linter command, avoiding the FileType-autocmd ordering race that could still expose an initial 80-column warning in 2.6.0.1:
+For Ansible buffers only, the dedicated ALE linter `yamllint_ansible` disables
+three style/policy rules:
 
 ```text
-yamllint -d '{extends: default, rules: {line-length: disable}}' ...
+yamllint -d '{extends: default, rules: {line-length: disable, comments-indentation: disable, truthy: disable}}' ...
 ```
 
-All other normal yamllint rules remain enabled. Ordinary YAML files keep the normal line-length policy.
+ALE treats a compound filetype such as `yaml.ansible` as separate `yaml` and
+`ansible` components. Therefore 2.6.0.4 also sets these buffer-local values on
+`FileType yaml.ansible`:
 
-The Ansible Language Server remains enabled for completion/navigation/validation, but its internal ansible-lint integration is disabled so ALE remains the single lint owner. As a second guard, the yegappan/lsp `processDiagHandler` removes only diagnostics identified as line-length warnings for Ansible buffers.
+```vim
+let b:ale_linter_aliases = ['ansible']
+let b:ale_linters = ['yamllint_ansible', 'ansible_lint']
+```
+
+This prevents the generic YAML `yamllint` linter from running in Ansible
+buffers. The dedicated callback filters the same three yamllint rule codes as a
+final safeguard. All other normal yamllint diagnostics remain enabled.
+Ordinary YAML files still use the normal yamllint policy.
+
+The Ansible Language Server remains enabled for completion/navigation/validation,
+but its internal ansible-lint integration is disabled so ALE remains the single
+lint owner. Its diagnostic filter also suppresses `line-length`, `comments-indentation`,
+and `truthy` if a backend emits any of those policy diagnostics.
 
 Useful checks in an Ansible buffer:
 
@@ -995,40 +1118,40 @@ Management mappings:
 The included helper installs system Node/npm for Copilot and Codex at `/usr/local/bin/codex`:
 
 ```bash
-chmod 755 install-vim-ai-linux-1.0.1.sh
-./install-vim-ai-linux-1.0.1.sh
+chmod 755 scripts/install-vim-ai-linux-1.0.1.sh
+./scripts/install-vim-ai-linux-1.0.1.sh
 ```
 
 Custom CA:
 
 ```bash
-./install-vim-ai-linux-1.0.1.sh \
+./scripts/install-vim-ai-linux-1.0.1.sh \
     --ca-bundle /path/to/company-ca.pem
 ```
 
 Strict TLS:
 
 ```bash
-./install-vim-ai-linux-1.0.1.sh --strict-tls
+./scripts/install-vim-ai-linux-1.0.1.sh --strict-tls
 ```
 
 Skip package installation if prerequisites are already managed separately:
 
 ```bash
-./install-vim-ai-linux-1.0.1.sh --skip-packages
+./scripts/install-vim-ai-linux-1.0.1.sh --skip-packages
 ```
 
 Skip Codex installation and install only Copilot prerequisites:
 
 ```bash
-./install-vim-ai-linux-1.0.1.sh --skip-codex
+./scripts/install-vim-ai-linux-1.0.1.sh --skip-codex
 ```
 
 ### macOS prerequisites
 
 ```bash
-chmod 755 install-vim-copilot-macos.sh
-./install-vim-copilot-macos.sh
+chmod 755 scripts/install-vim-copilot-macos.sh
+./scripts/install-vim-copilot-macos.sh
 ```
 
 The macOS helper validates Vim support and installs Node via Homebrew if needed.
@@ -1320,7 +1443,7 @@ If `:SyntasticCheck` still exists after a complete restart, locate the old runti
 :verbose command SyntasticCheck
 ```
 
-### Ansible 80-character line-length warning still appears
+### Ansible line-length/comment-indentation/truthy warning still appears
 
 Confirm the buffer is detected as Ansible:
 
@@ -1341,7 +1464,17 @@ Then inspect:
 :LspDiag show
 ```
 
-For `filetype=yaml.ansible`, `ALEInfo` should list `yamllint_ansible` plus `ansible_lint`. If a line-length item is still visible after upgrading, completely restart Vim first so diagnostics produced by the old session are cleared.
+For `filetype=yaml.ansible`, `ALEInfo` must list `yamllint_ansible` plus
+`ansible_lint` and must **not** list the generic `yamllint`. The following messages are intentionally suppressed in 2.6.0.5:
+
+```text
+line too long (... > 80 characters)
+comment not indented like content
+truthy value should be one of [false, true]
+```
+
+After upgrading, completely exit all Vim processes before retesting so
+diagnostics created by an older session are cleared.
 
 ### Copilot does not show ghost text
 
@@ -1374,7 +1507,7 @@ codex --version
 If absent, rerun:
 
 ```bash
-./install-vim-ai-linux-1.0.1.sh
+./scripts/install-vim-ai-linux-1.0.1.sh
 ```
 
 ### Corporate TLS failures
@@ -1435,7 +1568,9 @@ VIM-2.6.0.2-MAINTENANCE.md
 - `README.md` is the primary operational guide.
 - `VIM-2.6.0.1-MIGRATION.md` documents the 2.5-to-2.6 architecture transition.
 - `VIM-2.6.0.1-MAINTENANCE.md` documents the TypeScript npm pin correction from 2.6.0.0 to 2.6.0.1.
-- `VIM-2.6.0.2-MAINTENANCE.md` documents the Ansible line-length and Copilot `<Tab>` corrections.
+- `VIM-2.6.0.2-MAINTENANCE.md` documents the first Ansible line-length and Copilot `<Tab>` corrections.
+- `VIM-2.6.0.4-MAINTENANCE.md` documents the definitive compound-filetype Ansible lint fix.
+- `VIM-2.6.0.5-MAINTENANCE.md` documents the Ansible `truthy` suppression and LSP-manager 1.0.3 hardening.
 
 ---
 
@@ -1446,7 +1581,7 @@ VIM-2.6.0.2-MAINTENANCE.md
 3. The LSP manager uses a private Node runtime so server dependencies do not dictate the system Node version.
 4. ALE owns external lint/fix workflows and does not create LSP connections.
 5. Ansible LSP does not run its own ansible-lint integration; ALE is the single lint owner.
-6. Ansible's generic 80-column warning is disabled only for Ansible buffers.
+6. Ansible `line-length`, `comments-indentation`, and `truthy` policy warnings are disabled only for Ansible buffers.
 7. On Linux/macOS, `<Tab>` prefers a visible Copilot ghost-text suggestion and otherwise falls back to LSP popup navigation or a normal Tab.
 8. Codex explicit repository editing remains Linux-only in the 2.6 design.
 9. MobaXterm remains AI-free.

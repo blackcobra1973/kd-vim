@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.3"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 VERSIONS_FILE="${SCRIPT_DIR}/versions.conf"
 [[ -r "${VERSIONS_FILE}" ]] || VERSIONS_FILE="${SCRIPT_DIR}/lsp-versions.conf"
@@ -66,7 +66,11 @@ sha256_file() {
 }
 
 curl_download() {
-  local url="$1" out="$2"
+  (($# == 2)) || die "curl_download requires URL and output path"
+  local url
+  local out
+  url="$1"
+  out="$2"
   local -a base=(curl --fail --location --silent --show-error --retry 2 --connect-timeout 20)
   [[ -n "${CA_BUNDLE}" ]] && base+=(--cacert "${CA_BUNDLE}")
   if "${base[@]}" --output "${out}" "${url}"; then return 0; fi
@@ -79,12 +83,19 @@ curl_download() {
 }
 
 curl_text() {
-  local url="$1" out="$2"
+  (($# == 2)) || die "curl_text requires URL and output path"
+  local url
+  local out
+  url="$1"
+  out="$2"
   curl_download "$url" "$out"
 }
 
 platform_detect() {
-  local u="$(uname -s)" m="$(uname -m)"
+  local u
+  local m
+  u="$(uname -s)"
+  m="$(uname -m)"
   case "$u" in
     Linux*) OS=linux ;;
     Darwin*) OS=darwin ;;
@@ -177,12 +188,16 @@ install_npm_servers() {
 }
 
 create_npm_wrapper() {
-  local name="$1" target="${BIN_DIR}/${name}"
+  (($# == 1)) || die "create_npm_wrapper requires exactly one executable name"
+  local wrapper_name
+  local target
+  wrapper_name="$1"
+  target="${BIN_DIR}/${wrapper_name}"
   cat > "$target" <<WRAP
 #!/usr/bin/env bash
 set -e
 export PATH="${NODE_HOME}/bin:${NODE_HOME}:\$PATH"
-base="${NPM_DIR}/node_modules/.bin/${name}"
+base="${NPM_DIR}/node_modules/.bin/${wrapper_name}"
 if [[ -x "\$base" ]]; then exec "\$base" "\$@"; fi
 if [[ -f "\${base}.cmd" ]]; then
   if command -v cygpath >/dev/null 2>&1 && command -v cmd.exe >/dev/null 2>&1; then
@@ -190,33 +205,51 @@ if [[ -f "\${base}.cmd" ]]; then
   fi
   exec "\${base}.cmd" "\$@"
 fi
-echo "Missing npm language-server executable: ${name}" >&2
+echo "Missing npm language-server executable: ${wrapper_name}" >&2
 exit 127
 WRAP
   chmod 0755 "$target"
 }
 
 install_terraform_ls() {
-  [[ "$OS" == windows ]] && local osname=windows || local osname="$OS"
-  local archname="$ARCH"; [[ "$archname" == amd64 ]] || true
-  local asset="terraform-ls_${TERRAFORM_LS_VERSION}_${osname}_${archname}.zip"
-  local base="https://releases.hashicorp.com/terraform-ls/${TERRAFORM_LS_VERSION}"
-  local sums="${CACHE_DIR}/terraform-ls_${TERRAFORM_LS_VERSION}_SHA256SUMS"
+  local osname
+  local archname
+  local asset
+  local base
+  local sums
+  local expected
+  local dest
+  local bin
+  if [[ "$OS" == windows ]]; then osname=windows; else osname="$OS"; fi
+  archname="$ARCH"
+  asset="terraform-ls_${TERRAFORM_LS_VERSION}_${osname}_${archname}.zip"
+  base="https://releases.hashicorp.com/terraform-ls/${TERRAFORM_LS_VERSION}"
+  sums="${CACHE_DIR}/terraform-ls_${TERRAFORM_LS_VERSION}_SHA256SUMS"
   curl_download "${base}/terraform-ls_${TERRAFORM_LS_VERSION}_SHA256SUMS" "$sums" || die "Unable to download terraform-ls checksums"
-  local expected="$(awk -v f="$asset" '$2==f || $2=="*"f {print $1; exit}' "$sums")"
+  expected="$(awk -v f="$asset" '$2==f || $2=="*"f {print $1; exit}' "$sums")"
   [[ -n "$expected" ]] || die "No terraform-ls checksum for ${asset}"
   curl_download "${base}/${asset}" "${CACHE_DIR}/${asset}" || die "Unable to download ${asset}"
   [[ "$(sha256_file "${CACHE_DIR}/${asset}")" == "$expected" ]] || die "terraform-ls checksum mismatch"
-  local dest="${SERVER_DIR}/terraform-ls/${TERRAFORM_LS_VERSION}"; rm -rf "$dest"; mkdir -p "$dest"
+  dest="${SERVER_DIR}/terraform-ls/${TERRAFORM_LS_VERSION}"
+  rm -rf "$dest"
+  mkdir -p "$dest"
   unzip -q "${CACHE_DIR}/${asset}" -d "$dest"
-  local bin; bin="$(find "$dest" -maxdepth 2 -type f \( -name terraform-ls -o -name terraform-ls.exe \) | head -n1)"
+  bin="$(find "$dest" -maxdepth 2 -type f \( -name terraform-ls -o -name terraform-ls.exe \) | head -n1)"
   [[ -n "$bin" ]] || die "terraform-ls binary missing after extraction"
   chmod 0755 "$bin" 2>/dev/null || true
   ln -sf "$bin" "${BIN_DIR}/terraform-ls"
 }
 
 github_asset_digest() {
-  local repo="$1" tag="$2" asset="$3" json="${CACHE_DIR}/github-${repo//\//_}-${tag}.json"
+  (($# == 3)) || die "github_asset_digest requires repo, tag, and asset"
+  local repo
+  local tag
+  local asset
+  local json
+  repo="$1"
+  tag="$2"
+  asset="$3"
+  json="${CACHE_DIR}/github-${repo//\//_}-${tag}.json"
   curl_download "https://api.github.com/repos/${repo}/releases/tags/${tag}" "$json" || return 1
   awk -v want="$asset" '
     index($0, "\"name\"") { hit = index($0, "\"" want "\"") > 0 }
@@ -227,30 +260,51 @@ github_asset_digest() {
 }
 
 install_github_binary() {
-  local repo="$1" tag="$2" asset="$3" output_name="$4"
-  local url="https://github.com/${repo}/releases/download/${tag}/${asset}" file="${CACHE_DIR}/${asset}"
-  local digest actual
+  (($# == 4)) || die "install_github_binary requires repo, tag, asset, and output name"
+  local repo
+  local tag
+  local asset
+  local output_name
+  local url
+  local file
+  local digest
+  local actual
+  local dest
+  repo="$1"
+  tag="$2"
+  asset="$3"
+  output_name="$4"
+  url="https://github.com/${repo}/releases/download/${tag}/${asset}"
+  file="${CACHE_DIR}/${asset}"
   digest="$(github_asset_digest "$repo" "$tag" "$asset" || true)"
   [[ -n "$digest" ]] || die "GitHub did not publish a SHA256 asset digest for ${repo} ${tag} ${asset}; refusing unverified install"
   curl_download "$url" "$file" || die "Unable to download ${url}"
   actual="$(sha256_file "$file")"
   [[ "$actual" == "$digest" ]] || die "SHA256 mismatch for ${asset}"
-  local dest="${SERVER_DIR}/${output_name}/${tag}"; rm -rf "$dest"; mkdir -p "$dest"
+  dest="${SERVER_DIR}/${output_name}/${tag}"
+  rm -rf "$dest"
+  mkdir -p "$dest"
   cp "$file" "${dest}/${output_name}$([[ "$OS" == windows ]] && printf '.exe')"
   chmod 0755 "${dest}/${output_name}"* 2>/dev/null || true
   ln -sf "$(find "$dest" -maxdepth 1 -type f | head -n1)" "${BIN_DIR}/${output_name}"
 }
 
 install_helm_ls() {
-  local osname="$OS"; [[ "$OS" == windows ]] && osname=windows
-  local asset="helm_ls_${osname}_${ARCH}"
+  local osname
+  local asset
+  osname="$OS"
+  [[ "$OS" == windows ]] && osname=windows
+  asset="helm_ls_${osname}_${ARCH}"
   [[ "$OS" == windows ]] && asset+=".exe"
   install_github_binary "mrjosh/helm-ls" "$HELM_LS_VERSION" "$asset" "helm_ls"
 }
 
 install_docker_ls() {
-  local osname="$OS"; [[ "$OS" == windows ]] && osname=windows
-  local asset="docker-language-server-${osname}-${ARCH}"
+  local osname
+  local asset
+  osname="$OS"
+  [[ "$OS" == windows ]] && osname=windows
+  asset="docker-language-server-${osname}-${ARCH}"
   [[ "$OS" == windows ]] && asset+=".exe"
   install_github_binary "docker/docker-language-server" "v${DOCKER_LS_VERSION}" "$asset" "docker-language-server"
 }
@@ -313,7 +367,14 @@ lock_source() {
   log "Wrote complete lockfile: ${NPM_LOCK_FILE}"
 }
 
-ACTION="${1:-}"; [[ -n "$ACTION" ]] || { usage; exit 2; }; shift || true
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+ACTION="${1:-}"
+[[ -n "$ACTION" ]] || { usage; exit 2; }
+shift || true
 while (($#)); do
   case "$1" in
     --profile) PROFILE="${2:?}"; shift 2 ;;
@@ -325,6 +386,8 @@ while (($#)); do
     *) die "Unknown option: $1" ;;
   esac
 done
+
+[[ "$ACTION" == "help" ]] || log "lsp-manager.sh version ${SCRIPT_VERSION}"
 
 case "$ACTION" in
   install|update) need curl; platform_detect; install_profile ;;
