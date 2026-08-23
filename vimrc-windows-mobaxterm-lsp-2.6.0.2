@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.6.0.0 - 2026-08-23
+"       2.6.0.2 - 2026-08-23 (Windows/MobaXterm)
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -20,8 +20,7 @@
 "     -> Vim formatting
 "     -> Vim key (re)mappings
 "     -> Vim plugins configurations
-"     -> Linux/macOS AI integrations (Copilot; Codex CLI on Linux)
-"     -> Vim GUI Settings
+"     -> AI integrations intentionally excluded on MobaXterm
 "     -> Vim functions
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -30,19 +29,26 @@
 " => Vim Environment
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Environment {
-  " This configuration intentionally supports Linux and macOS only.
-  if !has('linux') && !has('macunix')
-    echoerr 'This vimrc supports Linux and macOS only.'
-    finish
+  " This variant targets terminal Vim running inside MobaXterm's
+  " Cygwin/Unix-like environment on Windows. It intentionally does not
+  " configure Windows gVim or any X11 GUI.
+  function! MOBAXTERM() abort
+    if exists('g:kd_force_mobaxterm') && g:kd_force_mobaxterm
+      return 1
+    endif
+
+    " MobaXterm normally exposes Windows drives below /drives and provides
+    " /bin/bash. win32unix covers Vim builds that explicitly identify the
+    " Cygwin-style environment.
+    return executable('/bin/bash')
+          \ && (isdirectory('/drives') || has('win32unix'))
+  endfunction
+
+  if !MOBAXTERM()
+    echohl WarningMsg
+    echomsg 'Warning: this vimrc is intended for MobaXterm terminal Vim on Windows.'
+    echohl None
   endif
-
-  function! LINUX() abort
-    return has('linux')
-  endfunction
-
-  function! MACOS() abort
-    return has('macunix')
-  endfunction
 
   " Vim 2.6 completion/LSP baseline:
   "   - yegappan/lsp requires Vim 9.0 or newer.
@@ -126,17 +132,61 @@
   command! KDModernHealth call <SID>KDModernHealth()
 
   set nocompatible        " Use Vim defaults rather than vi compatibility
-  set background=dark     " Assume a dark background
-  set shell=/bin/sh
+  set background=dark     " Assume a dark terminal background
   set encoding=utf-8
+  set fileformats=unix,dos
 
-  " Arrow key fix for common Unix terminal types.
+  " MobaXterm supports a 256-color terminal. Some bundled Vim builds report
+  " a lower terminal color count, which breaks legacy 256-color schemes such
+  " as grb256 and also changes Lightline's palette.
+  if !has('gui_running') && exists('&t_Co') && &t_Co < 256
+    set t_Co=256
+  endif
+
+  " MobaXterm ships Bash and Unix tools. Use Bash explicitly so :!, system(),
+  " vim-plug, Git hooks and helper commands all use the same shell semantics.
+  if executable('/bin/bash')
+    set shell=/bin/bash
+  elseif executable('/bin/sh')
+    set shell=/bin/sh
+  endif
+  set shellcmdflag=-c
+
+  " If a native Win32 Vim binary is ever launched from MobaXterm, keep its
+  " path handling Unix-friendly. Cygwin/win32unix Vim builds do not need
+  " these Windows-only option changes.
+  if has('win32') || has('win64')
+    if exists('+shellslash')
+      set shellslash
+    endif
+    set shellquote=
+    set shellxquote=\"
+    if exists('+completeslash')
+      set completeslash=slash
+    endif
+  endif
+
+  " Always use ~/.vim rather than Vim's native-Windows "vimfiles" convention.
+  " This also keeps the same layout when HOME is a MobaXterm persistent home
+  " or a Windows folder exposed as /drives/c/....
+  let s:kd_vim_runtime = expand('~/.vim')
+  let s:kd_vim_after = s:kd_vim_runtime . '/after'
+  let s:kd_runtime_paths = split(&runtimepath, ',')
+
+  if index(s:kd_runtime_paths, s:kd_vim_runtime) < 0
+    let &runtimepath = s:kd_vim_runtime . ',' . &runtimepath
+  endif
+  if index(split(&runtimepath, ','), s:kd_vim_after) < 0
+    let &runtimepath .= ',' . s:kd_vim_after
+  endif
+
+  " Arrow-key fix for MobaXterm/xterm-style terminals.
   if &term[:4] ==# 'xterm' || &term[:5] ==# 'screen' || &term[:3] ==# 'rxvt'
     inoremap <silent> <C-[>OC <Right>
   endif
 " }
 
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Vim Options
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " kd options {
@@ -214,19 +264,12 @@
 " }
 
 " 2.6 AI platform boundary {
-  " GitHub Copilot ghost-text completion is supported on both Linux and macOS.
-  " The OpenAI Codex Vim command integration remains Linux-only in 2.6.
-  " The shared vimrc.before.local may list both bundle groups; on macOS only
-  " the Linux-only codex group is filtered out.
-  if MACOS() && exists('g:kd_bundle_groups')
-    call filter(g:kd_bundle_groups, "v:val !=# 'codex'")
-  endif
-
-  " yegappan/lsp uses Vim popup completion; Copilot therefore keeps <Tab> free.
-  " These variables must be set before plug#end() loads copilot.vim.
-  if LINUX() || MACOS()
-    let g:copilot_no_tab_map = v:true
-    let g:copilot_hide_during_completion = 0
+  " AI is intentionally excluded from the Windows/MobaXterm variant.  Keep
+  " yegappan/lsp and native completion, but never load Copilot, Codex integration,
+  " ghost text, or AI-specific dependencies even when a shared before.local
+  " contains the Linux AI bundle names.
+  if exists('g:kd_bundle_groups')
+    call filter(g:kd_bundle_groups, "index(['github_copilot', 'codex'], v:val) < 0")
   endif
 " }
 
@@ -260,8 +303,11 @@ let g:syntastic_check_on_wq = 0
     let g:kd_curl_allow_insecure_fallback = 1
   endif
 
-  " Optional custom CA bundle, useful with an internal/corporate CA:
+  " Optional custom CA bundle, useful with an internal/corporate CA.
+  " On MobaXterm this is the preferred solution for a corporate TLS proxy:
   "   let g:kd_curl_ca_bundle = '/path/to/ca-bundle.pem'
+  " If verified TLS still fails and g:kd_curl_allow_insecure_fallback is 1,
+  " the bootstrap retries once with curl --insecure and emits a warning.
   let s:kd_plug_file = expand('~/.vim/autoload/plug.vim')
   let s:kd_plug_url = 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
   let s:kd_plug_bootstrapped = 0
@@ -270,9 +316,24 @@ let g:syntastic_check_on_wq = 0
     echo 'vim-plug not found; bootstrapping it now...'
 
     let s:kd_plug_autoload_dir = fnamemodify(s:kd_plug_file, ':h')
-    if !isdirectory(s:kd_plug_autoload_dir) && !mkdir(s:kd_plug_autoload_dir, 'p', 0700)
-      echoerr 'Cannot create vim-plug autoload directory: ' . s:kd_plug_autoload_dir
-      finish
+    if !isdirectory(s:kd_plug_autoload_dir)
+      " Vim's mkdir() can fail on some MobaXterm HOME mappings (notably
+      " Windows/OneDrive paths exposed below /drives). Try it first, then
+      " fall back to MobaXterm's mkdir -p with proper shell quoting.
+      try
+        call mkdir(s:kd_plug_autoload_dir, 'p')
+      catch /^Vim\%((\a\+)\)\=:E739/
+        " Handled by the shell fallback below.
+      endtry
+
+      if !isdirectory(s:kd_plug_autoload_dir) && executable('mkdir')
+        silent execute '!mkdir -p ' . shellescape(s:kd_plug_autoload_dir)
+      endif
+
+      if !isdirectory(s:kd_plug_autoload_dir)
+        echoerr 'Cannot create vim-plug autoload directory: ' . s:kd_plug_autoload_dir
+        finish
+      endif
     endif
 
     if !executable('curl')
@@ -337,7 +398,7 @@ let g:syntastic_check_on_wq = 0
   " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if !exists('g:kd_bundle_groups')
-      let g:kd_bundle_groups = ['general', 'lsp', 'ale', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm', 'misc', 'github_copilot', 'codex',]
+      let g:kd_bundle_groups = ['general', 'lsp', 'ale', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm', 'misc',]
 
   endif
 
@@ -429,12 +490,6 @@ let g:syntastic_check_on_wq = 0
       if count(g:kd_bundle_groups, 'gist')
         Plug 'mattn/webapi-vim'
         Plug 'mattn/gist-vim'
-      endif
-    " }
-
-    " GitHub Copilot AI ghost-text completion (Linux + macOS) {
-      if (LINUX() || MACOS()) && count(g:kd_bundle_groups, 'github_copilot')
-        Plug 'github/copilot.vim'
       endif
     " }
 
@@ -607,8 +662,8 @@ call plug#end()
 " matchit ships with current Vim as an optional runtime package.
 silent! packadd! matchit
 
-" Modern Vim configuration: enable filetype plugins and indentation.
-" vim-sleuth may then refine indentation per project/buffer.
+" vim-plug enables filetype-specific indentation automatically.  The original
+" configuration intentionally uses filetype plugins without Vim indent files.
 filetype plugin indent on
 
 " Install missing plugins once Vim has completed startup.  This avoids running
@@ -647,7 +702,7 @@ endif
   scriptencoding utf-8        " Set encoding to UTF8
   set history=1000            " Sets how many lines of history VIM has to remember
   set autoread                " Set to auto read when a file is changed from the outside
-  set fileformats=unix                " Linux and macOS use Unix line endings
+  set fileformats=unix,dos            " Prefer Unix files, but detect Windows CRLF files
 
   " Most prefer to automatically switch to the current file directory when
   " a new buffer is opened; to prevent this behavior, add the following to
@@ -670,10 +725,7 @@ endif
 
   " Instead of reverting the cursor to the last position in the buffer, we
   " set it to the first line when editing a git commit message
-  augroup kd_gitcommit_cursor
-    autocmd!
-    autocmd FileType gitcommit call cursor(1, 1)
-  augroup END
+  autocmd FileType gitcommit autocmd! BufEnter COMMIT_EDITMSG call setpos('.', [0, 1, 1, 0])
 
   " Enable filetype plugins
   "filetype plugin on
@@ -754,31 +806,48 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Vim UI {
 
-  let g:solarized_termcolors=256
-  if !exists('g:override_kd_bundles') && filereadable(g:kd_plugin_directory . '/vim-colors-solarized/colors/solarized.vim')
-    let g:solarized_termtrans=1
-    let g:solarized_contrast="normal"
-    let g:solarized_visibility="normal"
-    colorscheme solarized       " Load a colorscheme
+  " Configure terminal palette before either Lightline or the editor
+  " colorscheme is initialized. Lightline recommends 256 colors in terminal
+  " Vim, and its palette must be known before an editor :colorscheme change.
+  if !has('gui_running') && exists('&t_Co') && &t_Co < 256
+    set t_Co=256
   endif
 
-  " Apply the selected colorscheme without leaving a stale E185 in v:errmsg on
-  " a clean first start before vim-plug has installed color plugins.
-  function! s:KDApplyColorScheme() abort
-    let l:scheme = get(g:, 'kd_colorscheme', 'Tomorrow-Night-Bright')
-
-    " grb256 is intentionally a 256-colour terminal scheme.
-    if l:scheme ==# 'grb256' && exists('+termguicolors')
-      set notermguicolors
+  if exists('g:kd_use_lightline')
+    if !exists('g:lightline')
+      let g:lightline = {}
     endif
+    if !has_key(g:lightline, 'colorscheme')
+      let g:lightline.colorscheme = 'powerline'
+    endif
+  endif
 
+  let g:solarized_termcolors = 256
+  let g:solarized_termtrans = 1
+  let g:solarized_contrast = 'normal'
+  let g:solarized_visibility = 'normal'
+
+  " Add possibility to define the colorscheme in ~/.vimrc.before.local.
+  " Example: let g:kd_colorscheme = 'badwolf'
+  if !exists('g:kd_colorscheme')
+    let g:kd_colorscheme = 'Tomorrow-Night-Bright'
+  endif
+
+  " grb256 is a cterm/256-color scheme. Do not let a true-color setting
+  " reinterpret its palette when this specific scheme is selected.
+  if g:kd_colorscheme ==# 'grb256' && exists('+termguicolors')
+    set notermguicolors
+  endif
+
+  function! s:KDApplyColorScheme() abort
     try
-      execute 'colorscheme ' . fnameescape(l:scheme)
+      execute 'colorscheme ' . fnameescape(g:kd_colorscheme)
     catch /^Vim\%((\a\+)\)\=:E185/
       echohl WarningMsg
-      echomsg 'Colorscheme not available yet: ' . l:scheme . '. It will be available after :PlugInstall completes.'
+      echomsg 'Configured colorscheme "' . g:kd_colorscheme . '" is not installed.'
+      echomsg 'Run :PlugInstall (or restart after automatic installation) and retry.'
       echohl None
-      let v:errmsg = ''
+      colorscheme default
     endtry
   endfunction
   call s:KDApplyColorScheme()
@@ -873,7 +942,7 @@ endif
 
   " Ignore compiled files
   set wildignore=*.o,*~,*.pyc
-  set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.DS_Store
+  set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,Thumbs.db,desktop.ini,*.lnk
 " }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -1164,19 +1233,8 @@ endif
   " Easier formatting
   nnoremap <silent> <leader>q gwip
 
-  " Fullscreen helper for Linux GUI environments when wmctrl is available.
-  if LINUX() && executable('wmctrl') && exists('v:windowid')
-    map <silent> <F11> :call system('wmctrl -ir ' . v:windowid . ' -b toggle,fullscreen')<CR>
-  endif
-
   " Fast saving
   nmap <leader>w :write!<CR>
-
-  " For when you forget to sudo.. Really Write the file.
-  cmap w!! w !sudo tee % >/dev/null
-  " :W sudo saves the file
-  " (useful for handling the permission-denied error)
-  " command W w !sudo tee % > /dev/null
 
   " Visual mode pressing * or # searches for the current selection
   " Super useful! From an idea by Michael Naumann
@@ -1499,13 +1557,12 @@ endif
 
     " Undotree {
         if isdirectory(g:kd_plugin_directory . '/undotree/')
-          " Keep F5 and the existing leader shortcut for undo-tree access.
+          " Preserve both the historical F5 shortcut and the leader shortcut.
           nnoremap <F5> :UndotreeToggle<CR>
           nnoremap <Leader>u :UndotreeToggle<CR>
 
           " Focus the history window immediately after opening it.
           let g:undotree_SetFocusWhenToggle = 1
-
         endif
     " }
 
@@ -1522,6 +1579,25 @@ endif
                 \ 'path': l:path,
                 \ 'args': a:args,
                 \ })
+        endfunction
+
+        function! s:KDFilterAnsibleDiagnostics(diags) abort
+          " Ansible files can legitimately contain long module arguments, URLs and
+          " Jinja expressions. Drop only line-length diagnostics if an LSP backend
+          " emits them; all other diagnostics are preserved.
+          let l:filtered = []
+          for l:diag in a:diags
+            let l:msg = get(l:diag, 'message', '')
+            let l:code = string(get(l:diag, 'code', ''))
+            if l:code =~? 'line[-_]length'
+                  \ || l:msg =~? '\cline[- ]length\c'
+                  \ || l:msg =~? '\cline too long\c'
+                  \ || l:msg =~? '\ctoo long.*[0-9].*>.*[0-9]'
+              continue
+            endif
+            call add(l:filtered, l:diag)
+          endfor
+          return l:filtered
         endfunction
 
         function! s:KDSetupLsp() abort
@@ -1547,6 +1623,7 @@ endif
                   \ 'filetype': 'yaml.ansible',
                   \ 'path': l:ansible_path,
                   \ 'args': ['--stdio'],
+                  \ 'processDiagHandler': function('<SID>KDFilterAnsibleDiagnostics'),
                   \ 'workspaceConfig': {
                   \   'ansible': {
                   \     'validation': {
@@ -1623,19 +1700,20 @@ endif
           \ 'yaml.ansible': ['yaml', 'ansible'],
           \ }
         " Ansible YAML often contains long module arguments, URLs and Jinja
-        " expressions where the generic yamllint 80-column default adds noise.
-        " Keep every other yamllint rule enabled, but disable line-length only
-        " for ansible-vim's compound yaml.ansible filetype.  Buffer-local ALE
-        " options ensure ordinary YAML files keep their normal yamllint policy.
-        function! s:KDConfigureAnsibleYamllint() abort
-          let b:ale_yaml_yamllint_options = '-d "{extends: default, rules: {line-length: disable}}"'
-        endfunction
-        augroup kd_ale_ansible
-          autocmd!
-          autocmd FileType yaml.ansible call <SID>KDConfigureAnsibleYamllint()
-        augroup END
+        " expressions where the generic yamllint line-length rule adds noise.
+        " Use a dedicated ALE linter definition so the option is part of the
+        " command itself. This avoids FileType autocmd ordering races and keeps
+        " every other yamllint rule enabled.
+        if exists(':ALELint') == 2
+          call ale#linter#Define('ansible', {
+                \ 'name': 'yamllint_ansible',
+                \ 'executable': 'yamllint',
+                \ 'command': "%e -d '{extends: default, rules: {line-length: disable}}' -f parsable %t",
+                \ 'callback': 'ale#handlers#yamllint#Handle',
+                \ })
+        endif
         let g:ale_linters = {
-          \ 'yaml.ansible': ['yamllint', 'ansible_lint'],
+          \ 'yaml.ansible': ['yamllint_ansible', 'ansible_lint'],
           \ 'ansible': ['ansible_lint'],
           \ 'yaml': ['yamllint'],
           \ 'python': ['ruff'],
@@ -1648,249 +1726,11 @@ endif
           \ 'python': ['ruff_format'],
           \ 'terraform': ['terraform'],
           \ }
-        " 2.5 reserves <leader>a... for Codex AI actions.
-        nnoremap <silent> <leader>zl :ALELint<CR>
-        nnoremap <silent> <leader>zf :ALEFix<CR>
-        nnoremap <silent> <leader>zn :ALENextWrap<CR>
-        nnoremap <silent> <leader>zp :ALEPreviousWrap<CR>
+        nnoremap <silent> <leader>al :ALELint<CR>
+        nnoremap <silent> <leader>af :ALEFix<CR>
+        nnoremap <silent> <leader>an :ALENextWrap<CR>
+        nnoremap <silent> <leader>ap :ALEPreviousWrap<CR>
       endif
-    " }
-
-    " Linux/macOS AI integrations {
-      " Architecture:
-      "   - github/copilot.vim: continuous inline/multiline ghost-text prediction
-      "     on both Linux and macOS.
-      "   - OpenAI Codex CLI: deliberate explain/fix/refactor/edit/test/review tasks
-      "     on Linux only in the 2.6 design.
-      "   - yegappan/lsp is the normal semantic completion/LSP stack.
-      " MobaXterm/Windows remains AI-free in its separate vimrc.
-
-      " GitHub Copilot {
-        if (LINUX() || MACOS()) && count(g:kd_bundle_groups, 'github_copilot')
-          if isdirectory(g:kd_plugin_directory . '/copilot.vim/')
-            " Keep <Tab> available for LSP popup navigation. Ctrl-G accepts the complete ghost-text
-            " suggestion; Copilot's standard Alt mappings remain available for
-            " next/previous suggestion, next word, next line and manual request.
-            imap <silent><script><expr> <C-G> copilot#Accept('')
-
-            nnoremap <silent> <leader>cp :Copilot panel<CR>
-            nnoremap <silent> <leader>cs :Copilot status<CR>
-            nnoremap <silent> <leader>ce :Copilot enable<CR>
-            nnoremap <silent> <leader>cd :Copilot disable<CR>
-            nnoremap <silent> <leader>cm :Copilot model<CR>
-            nnoremap <silent> <leader>cu :Copilot upgrade<CR>
-          endif
-        endif
-      " }
-
-      " Cross-platform AI health (Copilot on Linux/macOS; Codex on Linux only) {
-        if (LINUX() || MACOS()) && count(g:kd_bundle_groups, 'github_copilot')
-          function! s:KDAIStatus() abort
-            echomsg 'Vim AI 2.5 status:'
-            echomsg '  platform: ' . (LINUX() ? 'Linux' : 'macOS')
-            echomsg '  Copilot plugin: ' . (isdirectory(g:kd_plugin_directory . '/copilot.vim/') ? 'installed' : 'missing')
-            echomsg '  Node.js: ' . (executable('node') ? substitute(system('node --version'), '\n\+$', '', '') : 'NOT FOUND')
-            if exists(':Copilot') == 2
-              echomsg '  Copilot command: available (run :Copilot status for service state)'
-            else
-              echomsg '  Copilot command: unavailable'
-            endif
-            if LINUX() && count(g:kd_bundle_groups, 'codex')
-              if executable('codex')
-                echomsg '  Codex: ' . substitute(system('codex --version 2>/dev/null'), '\n\+$', '', '')
-                let l:auth = system('codex login status 2>&1')
-                echomsg '  Codex auth: ' . substitute(l:auth, '\n\+$', '', '')
-              else
-                echomsg '  Codex: NOT FOUND'
-              endif
-            else
-              echomsg '  Codex Vim integration: disabled on macOS in 2.5'
-            endif
-          endfunction
-
-          command! AIStatus call <SID>KDAIStatus()
-          command! KDAIHealth call <SID>KDAIStatus()
-          nnoremap <silent> <leader>as :AIStatus<CR>
-        endif
-      " }
-
-      " OpenAI Codex CLI {
-        if LINUX() && count(g:kd_bundle_groups, 'codex')
-          function! s:KDCodexRepoRoot() abort
-            let l:start = expand('%:p:h')
-            if empty(l:start)
-              let l:start = getcwd()
-            endif
-            if executable('git')
-              let l:out = systemlist('git -C ' . shellescape(l:start) . ' rev-parse --show-toplevel 2>/dev/null')
-              if v:shell_error == 0 && !empty(l:out) && !empty(l:out[0])
-                return l:out[0]
-              endif
-            endif
-            return getcwd()
-          endfunction
-
-          function! s:KDCodexContext(line1, line2, whole_file) abort
-            let l:file = expand('%:p')
-            if empty(l:file)
-              return 'the current repository'
-            endif
-            if a:whole_file
-              return 'the entire file ' . l:file
-            endif
-            if a:line1 != a:line2
-              return printf('%s lines %d-%d', l:file, a:line1, a:line2)
-            endif
-            return printf('%s line %d', l:file, a:line1)
-          endfunction
-
-          function! s:KDCodexPromptArgument(given, label) abort
-            if !empty(a:given)
-              return a:given
-            endif
-            return input(a:label . ': ')
-          endfunction
-
-          function! s:KDCodexShellCommand(args) abort
-            return join(map(copy(a:args), 'shellescape(v:val)'), ' ')
-          endfunction
-
-          function! s:KDCodexExit(job, status) abort
-            silent! checktime
-            if a:status == 0
-              echomsg 'Codex task completed. External file changes were checked.'
-            else
-              echohl WarningMsg
-              echomsg 'Codex exited with status ' . a:status . '. Review the Codex terminal output.'
-              echohl None
-            endif
-          endfunction
-
-          function! s:KDCodexRun(prompt, writable) abort
-            if !executable('codex')
-              echohl WarningMsg
-              echomsg 'Codex CLI not found in PATH. Install it and run: codex login'
-              echohl None
-              return
-            endif
-
-            " Codex reads the working tree from disk. Avoid silently sending stale
-            " buffer content or overwriting unsaved edits.
-            if &modified
-              echohl WarningMsg
-              echomsg 'Save the current buffer before starting a Codex task.'
-              echohl None
-              return
-            endif
-
-            let l:root = s:KDCodexRepoRoot()
-            let l:sandbox = a:writable ? 'workspace-write' : 'read-only'
-            let l:args = ['codex', 'exec', '--ephemeral', '--sandbox', l:sandbox, '-C', l:root, a:prompt]
-
-            if exists('*term_start') && has('terminal')
-              botright new
-              setlocal noswapfile
-              execute 'file ' . fnameescape('[Codex ' . (a:writable ? 'write' : 'read-only') . ']')
-              call term_start(l:args, {
-                    \ 'curwin': 1,
-                    \ 'term_finish': 'open',
-                    \ 'exit_cb': function('<SID>KDCodexExit'),
-                    \ })
-              startinsert
-            else
-              execute '!' . s:KDCodexShellCommand(l:args)
-              silent! checktime
-            endif
-          endfunction
-
-          function! s:KDCodexAction(action, line1, line2, whole_file, qargs) abort
-            let l:context = s:KDCodexContext(a:line1, a:line2, a:whole_file)
-
-            if a:action ==# 'ask'
-              let l:user = s:KDCodexPromptArgument(a:qargs, 'Ask Codex')
-              if empty(l:user) | return | endif
-              call s:KDCodexRun('Answer this question about the repository and ' . l:context . ': ' . l:user . '. Do not modify files.', 0)
-            elseif a:action ==# 'explain'
-              let l:user = empty(a:qargs) ? 'Explain what this code does, important assumptions, and likely failure modes.' : a:qargs
-              call s:KDCodexRun('Inspect ' . l:context . '. ' . l:user . ' Do not modify files.', 0)
-            elseif a:action ==# 'edit'
-              let l:user = s:KDCodexPromptArgument(a:qargs, 'Edit instruction')
-              if empty(l:user) | return | endif
-              call s:KDCodexRun('Modify ' . l:context . ' according to this instruction: ' . l:user . '. Preserve unrelated behavior and run appropriate validation.', 1)
-            elseif a:action ==# 'fix'
-              let l:user = empty(a:qargs) ? 'Find and fix the defect in this context. Keep the change minimal and validate it.' : a:qargs
-              call s:KDCodexRun('Work on ' . l:context . '. ' . l:user, 1)
-            elseif a:action ==# 'refactor'
-              let l:user = s:KDCodexPromptArgument(a:qargs, 'Refactor goal')
-              if empty(l:user) | return | endif
-              call s:KDCodexRun('Refactor ' . l:context . ' with this goal: ' . l:user . '. Preserve behavior and run appropriate validation.', 1)
-            elseif a:action ==# 'test'
-              let l:user = empty(a:qargs) ? 'Add or improve the most relevant tests for this context and run them.' : a:qargs
-              call s:KDCodexRun('Work on ' . l:context . '. ' . l:user, 1)
-            elseif a:action ==# 'document'
-              let l:user = empty(a:qargs) ? 'Improve the code comments or documentation for this context without changing runtime behavior.' : a:qargs
-              call s:KDCodexRun('Work on ' . l:context . '. ' . l:user, 1)
-            elseif a:action ==# 'prompt'
-              let l:user = s:KDCodexPromptArgument(a:qargs, 'Codex repository task')
-              if empty(l:user) | return | endif
-              call s:KDCodexRun(l:user, 1)
-            endif
-          endfunction
-
-          function! s:KDCodexGitReview() abort
-            call s:KDCodexRun('Review the current Git worktree changes. Identify correctness, security, reliability, maintainability, and test gaps. Prioritize concrete findings and do not modify files.', 0)
-          endfunction
-
-          function! s:KDCodexOpen() abort
-            if !executable('codex')
-              echohl WarningMsg
-              echomsg 'Codex CLI not found in PATH.'
-              echohl None
-              return
-            endif
-            let l:args = ['codex', '-C', s:KDCodexRepoRoot()]
-            if exists('*term_start') && has('terminal')
-              botright new
-              setlocal noswapfile
-              execute 'file ' . fnameescape('[Codex interactive]')
-              call term_start(l:args, {'curwin': 1, 'term_finish': 'open'})
-              startinsert
-            else
-              execute '!' . s:KDCodexShellCommand(l:args)
-            endif
-          endfunction
-
-          command! -range -nargs=* AIAsk      call <SID>KDCodexAction('ask',      <line1>, <line2>, 0, <q-args>)
-          command! -bang -range -nargs=* AIEdit     call <SID>KDCodexAction('edit',     <line1>, <line2>, <bang>0, <q-args>)
-          command! -range -nargs=* AIExplain  call <SID>KDCodexAction('explain',  <line1>, <line2>, 0, <q-args>)
-          command! -bang -range -nargs=* AIFix      call <SID>KDCodexAction('fix',      <line1>, <line2>, <bang>0, <q-args>)
-          command! -bang -range -nargs=* AIRefactor call <SID>KDCodexAction('refactor', <line1>, <line2>, <bang>0, <q-args>)
-          command! -bang -range -nargs=* AITest     call <SID>KDCodexAction('test',     <line1>, <line2>, <bang>0, <q-args>)
-          command! -bang -range -nargs=* AIDocument call <SID>KDCodexAction('document', <line1>, <line2>, <bang>0, <q-args>)
-          command! AIGitReview call <SID>KDCodexGitReview()
-          command! -nargs=* AIPrompt call <SID>KDCodexAction('prompt', line('.'), line('.'), 0, <q-args>)
-          command! AIOpen call <SID>KDCodexOpen()
-
-          " Finalized 2.5 Codex namespace from the AI design.
-          nnoremap <leader>aa :AIAsk<Space>
-          nnoremap <leader>ae :AIEdit<Space>
-          nnoremap <silent> <leader>ax :AIExplain<CR>
-          nnoremap <silent> <leader>af :AIFix<CR>
-          nnoremap <leader>ar :AIRefactor<Space>
-          nnoremap <silent> <leader>at :AITest<CR>
-          nnoremap <silent> <leader>ad :AIDocument<CR>
-          nnoremap <silent> <leader>ag :AIGitReview<CR>
-          nnoremap <leader>ap :AIPrompt<Space>
-          nnoremap <silent> <leader>ao :AIOpen<CR>
-
-          xnoremap <leader>ae :AIEdit<Space>
-          xnoremap <silent> <leader>ax :AIExplain<CR>
-          xnoremap <silent> <leader>af :AIFix<CR>
-          xnoremap <leader>ar :AIRefactor<Space>
-          xnoremap <silent> <leader>at :AITest<CR>
-          xnoremap <silent> <leader>ad :AIDocument<CR>
-        endif
-      " }
     " }
 
     " Terraform {
@@ -1951,8 +1791,9 @@ endif
 
         if isdirectory(g:kd_plugin_directory . '/lightline.vim/')
 
+          let s:kd_lightline_colorscheme = get(g:lightline, 'colorscheme', 'powerline')
           let g:lightline = {
-                \ 'colorscheme': 'powerline',
+                \ 'colorscheme': s:kd_lightline_colorscheme,
                 \ 'mode_map': { 'c': 'NORMAL' },
                 \ 'active': {
                 \   'left': [ [ 'mode', 'paste' ], [ 'fugitive', 'filename' ] ]
@@ -2106,37 +1947,6 @@ endif
 
 
 """"""""""""""""""""""""""""""
-" => Vim GUI Settings
-""""""""""""""""""""""""""""""
-" GUI Settings {
-
-    " GVIM- (here instead of .gvimrc)
-    if has('gui_running')
-        set guioptions-=T           " Remove the toolbar
-        set lines=40                " 40 lines of text instead of 24
-        set linespace=0             " No extra spacing between GUI text rows
-        if !exists('g:kd_no_big_font')
-            if LINUX()
-                set guifont=DejaVu\ Sans\ Mono\ 12,Liberation\ Mono\ 12,Monospace\ 12
-            elseif MACOS()
-                set guifont=Menlo:h11,Monaco:h11,Courier:h12
-            endif
-        endif
-    else
-        " Modern Vim detects terminal color capabilities automatically.
-        "set term=builtin_ansi       " Legacy fallback for unusual terminals
-    endif
-
-    " Set extra options when running in GUI mode
-    "if has("gui_running")
-    "  set guioptions-=T
-    "  set guioptions-=e
-    "  set t_Co=256
-    "  set guitablabel=%M\ %t
-    "endif
-" }
-
-""""""""""""""""""""""""""""""
 " => Vim Functions
 """"""""""""""""""""""""""""""
 " Functions {
@@ -2265,9 +2075,12 @@ endif
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     " => Automatically chmod +x for files starting with #! .../bin/
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-    function! s:AutoChmodX()
-      if getline(1) =~ "^#!"
-        execute "silent !chmod +x " . shellescape(expand('%:h'), 1)
+    function! s:AutoChmodX() abort
+      let l:file = expand('%:p')
+      " Executable bits are meaningful in MobaXterm's Unix filesystem but not
+      " for ordinary files stored on Windows drives below /drives/*.
+      if getline(1) =~# '^#!' && l:file !~# '^/drives/'
+        silent execute '!chmod +x ' . shellescape(l:file)
       endif
     endfunction
     autocmd BufWritePost * call s:AutoChmodX()

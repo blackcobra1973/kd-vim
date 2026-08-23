@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 VERSIONS_FILE="${SCRIPT_DIR}/versions.conf"
 [[ -r "${VERSIONS_FILE}" ]] || VERSIONS_FILE="${SCRIPT_DIR}/lsp-versions.conf"
@@ -208,7 +208,6 @@ install_terraform_ls() {
   curl_download "${base}/${asset}" "${CACHE_DIR}/${asset}" || die "Unable to download ${asset}"
   [[ "$(sha256_file "${CACHE_DIR}/${asset}")" == "$expected" ]] || die "terraform-ls checksum mismatch"
   local dest="${SERVER_DIR}/terraform-ls/${TERRAFORM_LS_VERSION}"; rm -rf "$dest"; mkdir -p "$dest"
-  need unzip
   unzip -q "${CACHE_DIR}/${asset}" -d "$dest"
   local bin; bin="$(find "$dest" -maxdepth 2 -type f \( -name terraform-ls -o -name terraform-ls.exe \) | head -n1)"
   [[ -n "$bin" ]] || die "terraform-ls binary missing after extraction"

@@ -1,6 +1,6 @@
 {
   "name": "kd-vim-lsp-servers",
-  "version": "2.6.0.0",
+  "version": "2.6.0.2",
   "private": true,
   "description": "Pinned npm language servers for the Vim 2.6 yegappan/lsp configuration",
   "dependencies": {
@@ -8,7 +8,7 @@
     "@zed-industries/vscode-langservers-extracted": "4.10.8",
     "bash-language-server": "5.6.0",
     "pyright": "1.1.413",
-    "typescript": "6.0.0",
+    "typescript": "6.0.3",
     "typescript-language-server": "6.0.0",
     "vim-language-server": "2.3.1",
     "yaml-language-server": "1.24.0"
