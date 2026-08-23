@@ -76,8 +76,9 @@ After extraction the archive looks like this:
 ```text
 vim-2.6.0.7-package/
 ├── README.md
-├── VIM-2.6.0.7-MAINTENANCE.md
 ├── vim-2.6.0.7-SHA256SUMS.txt
+├── docs/
+│   └── VIM-2.6.0.7-MAINTENANCE.md
 ├── vimrc-linux-lsp
 ├── vimrc-linux-lsp-2.6.0.7
 ├── vimrc-windows-mobaxterm-lsp
