@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 CA_BUNDLE="${KD_CURL_CA_BUNDLE:-}"
 ALLOW_INSECURE_FALLBACK="${KD_CURL_ALLOW_INSECURE_FALLBACK:-1}"
 SKIP_PACKAGES=0
@@ -11,7 +11,7 @@ usage() {
   cat <<USAGE
 install-vim-ai-linux.sh version ${SCRIPT_VERSION}
 
-Installs Linux prerequisites for Vim 2.5.0.3 AI support:
+Installs Linux prerequisites for Vim 2.6 AI support:
   - Node.js + npm for github/copilot.vim
   - OpenAI Codex CLI via the official standalone installer, exposed as /usr/local/bin/codex
 
@@ -144,7 +144,7 @@ fi
 
 cat <<'NEXT'
 
-Next steps for Vim 2.5.0.3:
+Next steps for Vim 2.6.0.7:
   1. Run: codex
      On first use choose "Sign in with ChatGPT".
   2. Start Vim and run: :PlugInstall

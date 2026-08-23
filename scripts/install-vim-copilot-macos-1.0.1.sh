@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 
 echo "install-vim-copilot-macos.sh version ${SCRIPT_VERSION}"
 
@@ -39,11 +39,11 @@ cat <<'NEXT'
 macOS Copilot prerequisites are ready.
 
 Next steps:
-  1. Start Vim with the 2.5.0.1 configuration.
+  1. Start Vim with the 2.6.0.7 configuration.
   2. Run :PlugInstall (or :PlugUpdate).
   3. Run :Copilot setup and authenticate your GitHub Copilot account.
   4. Run :KDAIHealth.
 
-The 2.5 macOS profile enables GitHub Copilot ghost-text completion only.
+The 2.6 macOS profile enables GitHub Copilot ghost-text completion only.
 The OpenAI Codex Vim command integration remains Linux-only.
 NEXT

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.3"
+SCRIPT_VERSION="1.0.4"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 VERSIONS_FILE="${SCRIPT_DIR}/versions.conf"
 [[ -r "${VERSIONS_FILE}" ]] || VERSIONS_FILE="${SCRIPT_DIR}/lsp-versions.conf"
@@ -304,7 +304,11 @@ install_docker_ls() {
   local asset
   osname="$OS"
   [[ "$OS" == windows ]] && osname=windows
-  asset="docker-language-server-${osname}-${ARCH}"
+  # Docker release assets include the release version in the filename.
+  # Example for v0.20.1: docker-language-server-linux-amd64-v0.20.1
+  # The previous unversioned filename made GitHub digest lookup miss the asset
+  # and fail closed with "did not publish a SHA256 asset digest".
+  asset="docker-language-server-${osname}-${ARCH}-v${DOCKER_LS_VERSION}"
   [[ "$OS" == windows ]] && asset+=".exe"
   install_github_binary "docker/docker-language-server" "v${DOCKER_LS_VERSION}" "$asset" "docker-language-server"
 }
