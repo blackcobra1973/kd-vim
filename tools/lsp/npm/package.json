@@ -1,6 +1,6 @@
 {
   "name": "kd-vim-lsp-servers",
-  "version": "2.6.0.2",
+  "version": "2.6.0.7",
   "private": true,
   "description": "Pinned npm language servers for the Vim 2.6 yegappan/lsp configuration",
   "dependencies": {
