@@ -1,20 +1,26 @@
-# Vim configuration 2.6.0.9
+# Vim configuration 2.6.0.10
 
 A maintained Vim configuration for Linux, macOS and MobaXterm, with a Vim9-native
 LSP architecture based on `yegappan/lsp`, ALE for linting/fixing, platform-aware
 AI integration, and reproducible language-server installation.
 
-**Release:** 2.6.0.9  
+**Release:** 2.6.0.10  
 **Date:** 2026-08-24  
 **Completion/LSP client:** `yegappan/lsp`  
 **Linux/macOS manager:** `tools/lsp/lsp-manager-linux-macos.sh` 1.1.0  
-**MobaXterm manager:** `tools/lsp/lsp-manager-mobaxterm.sh` 1.1.0
+**MobaXterm manager:** `tools/lsp/lsp-manager-mobaxterm.sh` 1.1.1
 
 ---
 
-## 1. Important changes in 2.6.0.9
+## 1. Important changes in 2.6.0.10
 
-This release separates language-server management by platform.
+This release keeps the platform-specific LSP managers introduced previously and
+fixes the MobaXterm Node/npm execution and health-check behavior. The manager
+now follows the exact execution model confirmed to work in a real MobaXterm
+shell: `node.exe` and `npm.cmd` are invoked directly from their MobaXterm POSIX
+paths.
+
+The two-manager architecture remains unchanged.
 
 ### Linux and macOS
 
@@ -60,12 +66,14 @@ The MobaXterm manager now:
 
 1. installs the official Windows Node ZIP;
 2. verifies it against a package-pinned SHA-256 digest;
-3. uses `cygpath -w` to convert MobaXterm paths to native Windows paths;
-4. launches the Node distribution's own `npm.cmd` through `cmd.exe`;
-5. runs npm from a native Windows working directory;
-6. creates MobaXterm shell wrappers for the installed npm language servers.
+3. invokes `node.exe` directly from its MobaXterm POSIX path;
+4. invokes the Node distribution's own `npm.cmd` directly from its MobaXterm POSIX path;
+5. keeps argument boundaries intact by using Bash arrays rather than a reconstructed command string;
+6. uses `cygpath -w` only where a native Windows-form path is actually required, such as the npm cache variable;
+7. creates MobaXterm shell wrappers that execute the installed `.cmd` language-server shims directly.
 
-This avoids passing a POSIX `npm-cli.js` pathname to `node.exe` entirely.
+This avoids passing a POSIX `npm-cli.js` pathname to `node.exe` and avoids the
+extra `cmd.exe` quoting layer that caused the 1.1.0 health-check false failure.
 
 ---
 
@@ -75,10 +83,10 @@ The archive intentionally contains only the current versions of files.
 Historical versions, old ddc variants and diff/history files are not included.
 
 ```text
-vim-2.6.0.9-package/
+vim-2.6.0.10-package/
 ├── README.md
-├── VIM-2.6.0.9-MAINTENANCE.md
-├── vim-2.6.0.9-SHA256SUMS.txt
+├── VIM-2.6.0.10-MAINTENANCE.md
+├── vim-2.6.0.10-SHA256SUMS.txt
 ├── vimrc-linux-lsp
 ├── vimrc-windows-mobaxterm-lsp
 ├── vimrc.before.local-1.4.1
@@ -365,7 +373,36 @@ tools/lsp/lsp-manager-mobaxterm.sh update
 ### 8.4 Check
 
 ```bash
-tools/lsp/lsp-manager-mobaxterm.sh check
+tools/lsp/lsp-manager-mobaxterm.sh check --profile mobaxterm
+```
+
+The check executes the private runtime exactly as MobaXterm does from the
+interactive shell:
+
+```bash
+~/.local/share/vim-lsp/runtime/node/node.exe --version
+~/.local/share/vim-lsp/runtime/node/npm.cmd --version
+```
+
+A healthy runtime therefore reports both versions, for example:
+
+```text
+node:        /home/mobaxterm/.local/share/vim-lsp/runtime/node/node.exe (v24.19.0)
+npm bridge:  /home/mobaxterm/.local/share/vim-lsp/runtime/node/npm.cmd (11.17.0)
+```
+
+`check` also validates every server required by the selected profile. It returns
+exit status `0` only when Node, npm and all required servers are available. An
+incomplete installation returns exit status `1` and ends with a summary such as:
+
+```text
+status:      FAILED (12 required components unavailable)
+```
+
+A complete profile ends with:
+
+```text
+status:      OK
 ```
 
 ### 8.5 List
@@ -392,36 +429,31 @@ tools/lsp/lsp-manager-mobaxterm.sh clean --yes
 
 This is an important implementation detail.
 
-A MobaXterm path such as:
-
-```text
-/home/mobaxterm/.local/share/vim-lsp/runtime/node/npm.cmd
-```
-
-must first be translated with:
+MobaXterm provides a Windows-command bridge that lets its shell execute both
+Windows PE binaries and `.cmd` files directly from MobaXterm POSIX paths. For
+this runtime the supported calls are therefore simply:
 
 ```bash
-cygpath -w /home/mobaxterm/.local/share/vim-lsp/runtime/node/npm.cmd
+/home/mobaxterm/.local/share/vim-lsp/runtime/node/node.exe --version
+/home/mobaxterm/.local/share/vim-lsp/runtime/node/npm.cmd --version
 ```
 
-The MobaXterm manager uses that translated path with `cmd.exe`.
-
-It deliberately does **not** run:
+The manager deliberately does **not** run:
 
 ```bash
 node.exe /home/mobaxterm/.../npm-cli.js
 ```
 
-Instead it effectively uses the native Windows equivalent of:
+because native Windows Node can reinterpret that POSIX path as
+`C:\home\mobaxterm\...`, which is not the MobaXterm home mapping.
 
-```text
-cmd.exe /c <translated-path-to-npm.cmd> ...
-```
+It also does not add an unnecessary `cmd.exe /c` layer around normal Node/npm
+operations. Direct execution preserves MobaXterm's working path translation and
+keeps each command-line argument separate. `cygpath -w` remains available for
+values that native Windows tools must consume as path strings, such as the
+private npm cache path.
 
-`npm.cmd` then locates `node.exe` and npm's JavaScript entry point relative to
-its own Windows directory.
-
-This is why the MobaXterm and Linux/macOS managers are now separate scripts.
+This is why the MobaXterm and Linux/macOS managers remain separate scripts.
 
 ---
 
@@ -882,7 +914,7 @@ Check which manager files exist:
 find tools/lsp -maxdepth 1 -type f -name 'lsp-manager*.sh' -print
 ```
 
-For 2.6.0.9 you should use:
+For 2.6.0.10 you should use:
 
 ```text
 tools/lsp/lsp-manager-mobaxterm.sh
@@ -922,6 +954,27 @@ command -v cmd.exe
 ```
 
 Both must succeed.
+
+### `node: ... ()` or `npm bridge: ... (FAILED)` while manual commands work
+
+This was a manager 1.1.0 health-check bug. Version 1.1.1 executes the two
+commands directly instead of wrapping them in `cmd.exe`. Verify the installed
+manager version:
+
+```bash
+tools/lsp/lsp-manager-mobaxterm.sh --help | head
+```
+
+Then rerun:
+
+```bash
+tools/lsp/lsp-manager-mobaxterm.sh check --profile mobaxterm
+echo $?
+```
+
+If servers have not yet been installed, Node/npm should show their real
+versions but the command will correctly return `1` until all servers required
+by the profile exist.
 
 ### `npm.cmd missing from private Node runtime`
 
@@ -1011,7 +1064,7 @@ Run:
 :ALEInfo
 ```
 
-Ensure the current 2.6.0.9 Vimrc is actually loaded.
+Ensure the current 2.6.0.10 Vimrc is actually loaded.
 
 ---
 
@@ -1020,13 +1073,13 @@ Ensure the current 2.6.0.9 Vimrc is actually loaded.
 The package includes an internal checksum list:
 
 ```text
-vim-2.6.0.9-SHA256SUMS.txt
+vim-2.6.0.10-SHA256SUMS.txt
 ```
 
 From the extracted package directory:
 
 ```bash
-sha256sum -c vim-2.6.0.9-SHA256SUMS.txt
+sha256sum -c vim-2.6.0.10-SHA256SUMS.txt
 ```
 
 On macOS, if GNU `sha256sum` is unavailable, verify individual files with:

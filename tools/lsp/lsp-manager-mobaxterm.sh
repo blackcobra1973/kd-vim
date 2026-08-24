@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.1.0"
+SCRIPT_VERSION="1.1.1"
 SCRIPT_NAME="lsp-manager-mobaxterm.sh"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 VERSIONS_FILE="${SCRIPT_DIR}/versions.conf"
@@ -47,8 +47,9 @@ Profiles:
   minimal    npm LSP stack only
 
 This manager is specifically for MobaXterm/Cygwin/MSYS on Windows.
-It executes the private Windows Node distribution through cmd.exe and uses
-cygpath for every native Windows path passed to node/npm.
+It executes node.exe and npm.cmd directly through MobaXterm's Windows-command
+bridge. cygpath is used only where a Windows-form path is required by native
+Windows tools or environment variables.
 USAGE
 }
 
@@ -157,24 +158,24 @@ node_cmd() { [[ -f "${NODE_HOME}/node.exe" ]] && printf '%s\n' "${NODE_HOME}/nod
 npm_cmd() { [[ -f "${NODE_HOME}/npm.cmd" ]] && printf '%s\n' "${NODE_HOME}/npm.cmd" || return 1; }
 
 node_run() {
-  local node node_win
+  local node
   node="$(node_cmd)" || die "Private Node runtime not installed"
-  node_win="$(winpath "$node")"
-  cmd.exe /d /s /c "\"${node_win}\" $*"
+  # MobaXterm can execute Windows PE binaries directly from POSIX paths.
+  # Keeping argv as an array also avoids cmd.exe quoting/escaping problems.
+  "$node" "$@"
 }
 
 npm_run() {
-  local npm npm_win cwd_win
+  local npm
   npm="$(npm_cmd)" || die "npm.cmd not found in private Node runtime"
-  npm_win="$(winpath "$npm")"
-  cwd_win="$(winpath "$PWD")"
-  # Do not invoke node.exe with a POSIX npm-cli.js path. Native node.exe would
-  # reinterpret /home/... as C:\\home\\..., which is not MobaXterm's real home.
-  # npm.cmd resolves node.exe and npm-cli.js relative to its own Windows path.
+  # MobaXterm can execute .cmd files directly. This is deliberately preferred
+  # over calling node.exe with npm-cli.js: native node.exe would reinterpret a
+  # POSIX /home/... path as C:\\home\\..., causing MODULE_NOT_FOUND.
+  # npm.cmd resolves node.exe and npm-cli.js relative to the Node distribution.
   (
     mkdir -p "${CACHE_DIR}/npm-cache"
     export npm_config_cache="$(winpath "${CACHE_DIR}/npm-cache")"
-    cmd.exe /d /s /c "cd /d \"${cwd_win}\" && call \"${npm_win}\" $*"
+    "$npm" "$@"
   )
 }
 
@@ -195,7 +196,7 @@ create_npm_wrapper() {
 set -euo pipefail
 base="${NPM_DIR}/node_modules/.bin/${wrapper_name}"
 if [[ -f "\${base}.cmd" ]]; then
-  exec cmd.exe /d /s /c "\$(cygpath -w "\${base}.cmd")" "\$@"
+  exec "\${base}.cmd" "\$@"
 fi
 if [[ -x "\$base" ]]; then exec "\$base" "\$@"; fi
 echo "Missing npm language-server executable: ${wrapper_name}" >&2
@@ -291,28 +292,76 @@ list_servers() {
   done
 }
 
+profile_server_names() {
+  case "$PROFILE" in
+    minimal)
+      printf '%s\n' bash-language-server yaml-language-server ansible-language-server \
+        pyright-langserver typescript-language-server vscode-json-language-server \
+        vscode-html-language-server vscode-css-language-server vim-language-server
+      ;;
+    mobaxterm)
+      printf '%s\n' bash-language-server yaml-language-server ansible-language-server \
+        pyright-langserver typescript-language-server vscode-json-language-server \
+        vscode-html-language-server vscode-css-language-server vim-language-server \
+        terraform-ls helm_ls docker-language-server
+      ;;
+    *) die "Unknown profile: $PROFILE" ;;
+  esac
+}
+
 check_install() {
   platform_detect
+  case "$PROFILE" in mobaxterm|minimal) ;; *) die "Unknown profile: $PROFILE" ;; esac
+
+  local failures=0 node npm node_version npm_version n p
   printf '%s: %s\n' "$SCRIPT_NAME" "$SCRIPT_VERSION"
   printf 'platform:    MobaXterm/Windows %s\n' "$ARCH"
   printf 'profile:     %s\n' "$PROFILE"
   printf 'home:        %s\n' "$LSP_HOME"
-  local node node_win
+
   if node="$(node_cmd 2>/dev/null)"; then
-    node_win="$(winpath "$node")"
-    printf 'node:        %s (%s)\n' "$node" "$(cmd.exe /d /s /c "\"${node_win}\" --version" 2>/dev/null | tr -d '\r' || true)"
+    node_version="$("$node" --version 2>/dev/null | tr -d '\r\n' || true)"
+    if [[ -n "$node_version" ]]; then
+      printf 'node:        %s (%s)\n' "$node" "$node_version"
+    else
+      printf 'node:        %s (FAILED)\n' "$node"
+      failures=$((failures + 1))
+    fi
   else
     printf 'node:        NOT INSTALLED\n'
+    failures=$((failures + 1))
   fi
-  local npm npm_win npm_version
+
   if npm="$(npm_cmd 2>/dev/null)"; then
-    npm_win="$(winpath "$npm")"
-    npm_version="$(cmd.exe /d /s /c "call \"${npm_win}\" --version" 2>/dev/null | tr -d '\r' || true)"
-    printf 'npm bridge:  %s (%s)\n' "$npm" "${npm_version:-FAILED}"
+    npm_version="$("$npm" --version 2>/dev/null | tr -d '\r\n' || true)"
+    if [[ -n "$npm_version" ]]; then
+      printf 'npm bridge:  %s (%s)\n' "$npm" "$npm_version"
+    else
+      printf 'npm bridge:  %s (FAILED)\n' "$npm"
+      failures=$((failures + 1))
+    fi
   else
     printf 'npm bridge:  NOT INSTALLED\n'
+    failures=$((failures + 1))
   fi
-  list_servers
+
+  printf '%-30s %s\n' SERVER PATH
+  while IFS= read -r n; do
+    p="${BIN_DIR}/${n}"
+    if [[ -e "$p" ]]; then
+      printf '%-30s %s\n' "$n" "$p"
+    else
+      printf '%-30s %s\n' "$n" 'NOT INSTALLED'
+      failures=$((failures + 1))
+    fi
+  done < <(profile_server_names)
+
+  if (( failures > 0 )); then
+    printf 'status:      FAILED (%d required component%s unavailable)\n' \
+      "$failures" "$([[ $failures -eq 1 ]] && printf '' || printf 's')"
+    return 1
+  fi
+  printf 'status:      OK\n'
 }
 
 show_versions() {
