@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.6.0.8 - 2026-08-23 (Windows/MobaXterm)
+"       2.6.0.9 - 2026-08-24 (Windows/MobaXterm)
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -53,7 +53,7 @@
   " Vim 2.6 completion/LSP baseline:
   "   - yegappan/lsp requires Vim 9.0 or newer.
   "   - The LSP client is pure Vim9 script: Deno/denops are no longer required.
-  "   - Language servers are installed independently by tools/lsp/lsp-manager.sh.
+  "   - Language servers are installed independently by tools/lsp/lsp-manager-mobaxterm.sh.
   function! s:KDHasSupportedVimForLsp() abort
     return has('patch-9.0.0000') && has('job') && has('channel')
   endfunction
@@ -106,7 +106,7 @@
       let l:path = s:KDLspExecutable(l:server)
       echomsg printf('  %-28s %s', l:server . ':', empty(l:path) ? 'not installed' : l:path)
     endfor
-    echomsg '  Install/check servers with: tools/lsp/lsp-manager.sh install --profile standard / check'
+    echomsg '  Install/check servers with: tools/lsp/lsp-manager-mobaxterm.sh install / check'
   endfunction
   command! KDLspHealth call <SID>KDLspHealth()
   " Preserve the old diagnostic command name as an alias for muscle memory.

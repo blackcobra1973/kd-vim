@@ -39,7 +39,7 @@ cat <<'NEXT'
 macOS Copilot prerequisites are ready.
 
 Next steps:
-  1. Start Vim with the 2.6.0.8 configuration.
+  1. Start Vim with the 2.6.0.9 configuration.
   2. Run :PlugInstall (or :PlugUpdate).
   3. Run :Copilot setup and authenticate your GitHub Copilot account.
   4. Run :KDAIHealth.

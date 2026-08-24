@@ -144,7 +144,7 @@ fi
 
 cat <<'NEXT'
 
-Next steps for Vim 2.6.0.8:
+Next steps for Vim 2.6.0.9:
   1. Run: codex
      On first use choose "Sign in with ChatGPT".
   2. Start Vim and run: :PlugInstall

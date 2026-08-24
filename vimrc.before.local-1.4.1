@@ -1,0 +1,33 @@
+" vimrc.before.local
+" Version: 1.4.1 - 2026-08-24
+
+" Standard Vim 2.6 profile.
+let g:kd_bundle_groups = ['general', 'lsp', 'ale', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm', 'misc', 'github_copilot', 'codex',]
+
+" Completion/LSP architecture:
+"   yegappan/lsp is the single standard completion/LSP client and requires Vim 9.0+.
+"   ddc.vim, denops.vim, vim-lsp and vim-lsp-settings are no longer used.
+"   Deno is not required for completion.
+"   Linux/macOS language servers:
+"     tools/lsp/lsp-manager-linux-macos.sh
+"   MobaXterm language servers:
+"     tools/lsp/lsp-manager-mobaxterm.sh
+"   Default manager root: ~/.local/share/vim-lsp
+"   Stable wrappers:      ~/.local/share/vim-lsp/bin
+" Use :KDLspHealth (or the compatibility alias :KDCompletionHealth) and
+" :KDModernHealth for runtime diagnostics.
+
+" Vim 2.5/2.6 AI profile remains unchanged:
+"   Linux + macOS: github/copilot.vim supplies inline ghost-text predictions.
+"   Linux only: OpenAI Codex CLI supplies deliberate explain/edit/fix/refactor/test/review tasks.
+"   macOS filters only the codex bundle and keeps github_copilot enabled.
+"   MobaXterm/Windows strips both AI bundle names and remains completely AI-free.
+"   Use :KDAIHealth after installing/authenticating the platform's AI dependencies.
+
+" Recommended external tools used by the modern profile:
+"   fzf >= 0.54, ripgrep (rg), Universal Ctags, ansible-lint, yamllint,
+"   shellcheck, ruff, hadolint, terraform, tflint and helm.
+
+" Keep the existing statusline/theme defaults.
+"let g:kd_use_powerline = 1
+"let g:kd_use_old_powerline = 1
