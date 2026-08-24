@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.1.1"
+SCRIPT_VERSION="1.1.2"
 SCRIPT_NAME="lsp-manager-mobaxterm.sh"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 VERSIONS_FILE="${SCRIPT_DIR}/versions.conf"
@@ -19,6 +19,7 @@ ALLOW_INSECURE_FALLBACK=1
 CA_BUNDLE=""
 ASSUME_YES=0
 TLS_FALLBACK_WARNED=0
+NPM_TLS_FALLBACK_WARNED=0
 
 [[ -r "${VERSIONS_FILE}" ]] || { echo "ERROR: Missing ${VERSIONS_FILE}" >&2; exit 1; }
 [[ -r "${NPM_PACKAGE_FILE}" ]] || { echo "ERROR: Missing ${NPM_PACKAGE_FILE}" >&2; exit 1; }
@@ -165,18 +166,82 @@ node_run() {
   "$node" "$@"
 }
 
-npm_run() {
-  local npm
+npm_exec() {
+  local tls_mode="$1"
+  shift
+  local npm ca_win=""
   npm="$(npm_cmd)" || die "npm.cmd not found in private Node runtime"
-  # MobaXterm can execute .cmd files directly. This is deliberately preferred
-  # over calling node.exe with npm-cli.js: native node.exe would reinterpret a
-  # POSIX /home/... path as C:\\home\\..., causing MODULE_NOT_FOUND.
-  # npm.cmd resolves node.exe and npm-cli.js relative to the Node distribution.
-  (
-    mkdir -p "${CACHE_DIR}/npm-cache"
-    export npm_config_cache="$(winpath "${CACHE_DIR}/npm-cache")"
-    "$npm" "$@"
-  )
+
+  mkdir -p "${CACHE_DIR}/npm-cache"
+  export npm_config_cache="$(winpath "${CACHE_DIR}/npm-cache")"
+
+  # Node 24.19.0 can use the Windows trusted certificate store. This is the
+  # preferred MobaXterm path because curl/wget and Windows Node do not
+  # necessarily use the same CA store.
+  export NODE_USE_SYSTEM_CA=1
+  export npm_config_strict_ssl=true
+  unset npm_config_cafile NODE_EXTRA_CA_CERTS
+
+  if [[ -n "$CA_BUNDLE" ]]; then
+    [[ -r "$CA_BUNDLE" ]] || die "CA bundle is not readable: ${CA_BUNDLE}"
+    ca_win="$(winpath "$CA_BUNDLE")"
+    export npm_config_cafile="$ca_win"
+    export NODE_EXTRA_CA_CERTS="$ca_win"
+  fi
+
+  if [[ "$tls_mode" == insecure ]]; then
+    export npm_config_strict_ssl=false
+  fi
+
+  "$npm" "$@"
+}
+
+npm_run() {
+  local err rc
+  mkdir -p "$CACHE_DIR"
+  err="$(mktemp "${CACHE_DIR}/npm-stderr.XXXXXX")"
+
+  if npm_exec verified "$@" 2>"$err"; then
+    rm -f "$err"
+    return 0
+  else
+    rc=$?
+  fi
+
+  if grep -Eqi 'SELF_SIGNED_CERT_IN_CHAIN|SELF_SIGNED_CERT|UNABLE_TO_VERIFY_LEAF_SIGNATURE|UNABLE_TO_GET_ISSUER_CERT_LOCALLY|CERT_UNTRUSTED|DEPTH_ZERO_SELF_SIGNED_CERT' "$err"; then
+    if (( STRICT_TLS == 1 || ALLOW_INSECURE_FALLBACK == 0 )); then
+      cat "$err" >&2
+      rm -f "$err"
+      return "$rc"
+    fi
+
+    if (( NPM_TLS_FALLBACK_WARNED == 0 )); then
+      warn "npm TLS verification failed even with the Windows system CA store; retrying npm with strict-ssl=false for this run. Package versions remain pinned and npm lockfile integrity hashes are still enforced. Prefer --ca-bundle FILE when the intercepting CA is available."
+      NPM_TLS_FALLBACK_WARNED=1
+    fi
+    rm -f "$err"
+    npm_exec insecure "$@"
+    return $?
+  fi
+
+  cat "$err" >&2
+  rm -f "$err"
+  return "$rc"
+}
+
+npm_run_in_dir() {
+  local dir="$1" rc oldpwd
+  shift
+  oldpwd="$PWD"
+  cd "$dir"
+  if npm_run "$@"; then
+    cd "$oldpwd"
+    return 0
+  else
+    rc=$?
+    cd "$oldpwd"
+    return "$rc"
+  fi
 }
 
 materialize_runtime_lock() {
@@ -185,7 +250,7 @@ materialize_runtime_lock() {
   if grep -q '"kdSeedLock"[[:space:]]*:[[:space:]]*true' "${NPM_DIR}/package-lock.json"; then
     log "Expanding seed npm lockfile into a complete transitive lock"
     rm -f "${NPM_DIR}/package-lock.json"
-    (cd "$NPM_DIR" && npm_run install --package-lock-only --ignore-scripts --no-audit --no-fund)
+    npm_run_in_dir "$NPM_DIR" install --package-lock-only --ignore-scripts --no-audit --no-fund
   fi
 }
 
@@ -208,7 +273,7 @@ WRAP
 install_npm_servers() {
   install_node
   materialize_runtime_lock
-  (cd "$NPM_DIR" && npm_run ci --ignore-scripts --no-audit --no-fund)
+  npm_run_in_dir "$NPM_DIR" ci --ignore-scripts --no-audit --no-fund
   local names=(bash-language-server yaml-language-server ansible-language-server pyright-langserver typescript-language-server vscode-json-language-server vscode-html-language-server vscode-css-language-server vim-language-server)
   local n
   for n in "${names[@]}"; do create_npm_wrapper "$n"; done
@@ -374,7 +439,7 @@ lock_source() {
   platform_detect; mkdir_layout; install_node
   cp "$NPM_PACKAGE_FILE" "${NPM_DIR}/package.json"
   rm -f "${NPM_DIR}/package-lock.json"
-  (cd "$NPM_DIR" && npm_run install --package-lock-only --ignore-scripts --no-audit --no-fund)
+  npm_run_in_dir "$NPM_DIR" install --package-lock-only --ignore-scripts --no-audit --no-fund
   cp "${NPM_DIR}/package-lock.json" "$NPM_LOCK_FILE"
   log "Wrote complete lockfile: ${NPM_LOCK_FILE}"
 }
