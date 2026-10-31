@@ -25,7 +25,7 @@ version numbers on purpose. No other Vimrc snapshots or ddc variants are include
 10. [LSP manager and server lifecycle](#10-lsp-manager-and-server-lifecycle)
 11. [Plugin and completion architecture](#11-plugin-and-completion-architecture)
 12. [YAML, Ansible and diagnostic display](#12-yaml-ansible-and-diagnostic-display)
-13. [Statusline and colorscheme](#13-statusline-and-colorscheme)
+13. [Lightline and colorscheme](#13-lightline-and-colorscheme)
 14. [GitHub Copilot and Codex](#14-github-copilot-and-codex)
 15. [Keyboard shortcuts and health commands](#15-keyboard-shortcuts-and-health-commands)
 16. [Certificates, proxies and security](#16-certificates-proxies-and-security)
