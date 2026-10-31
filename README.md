@@ -1,102 +1,110 @@
-# Vim configuration 2.6.0.11
+# Vim configuration 1.5.2 — distribution package 2.7.2
 
-A maintained Vim configuration for Linux, macOS and MobaXterm, with a Vim9-native
-LSP architecture based on `yegappan/lsp`, ALE for linting/fixing, platform-aware
-AI integration, and reproducible language-server installation.
+**Release date:** 2026-10-29  
+**Editor:** classic Vim 9.x, not Neovim  
+**LSP client:** `yegappan/lsp`  
+**Asynchronous linting:** `dense-analysis/ale`  
+**Plugin manager:** `vim-plug`  
+**Targets:** native Linux, native macOS, Windows MobaXterm, Windows WSL2
 
-**Release:** 2.6.0.11  
-**Date:** 2026-08-24  
-**Completion/LSP client:** `yegappan/lsp`  
-**Linux/macOS manager:** `tools/lsp/lsp-manager-linux-macos.sh` 1.1.0  
-**MobaXterm manager:** `tools/lsp/lsp-manager-mobaxterm.sh` 1.1.2
+This is the complete installation, migration, operating and troubleshooting manual for
+package **2.7.2**. The Vim configuration itself is **1.5.2**. They are different
+version numbers on purpose. No other Vimrc snapshots or ddc variants are included.
 
----
+## Table of contents
 
-## 1. Important changes in 2.6.0.11
+1. [What changed](#1-what-changed)
+2. [Choose exactly one platform](#2-choose-exactly-one-platform)
+3. [Package contents](#3-package-contents)
+4. [Requirements and prerequisites](#4-requirements-and-prerequisites)
+5. [Install and migrate safely](#5-install-and-migrate-safely)
+6. [Linux](#6-linux)
+7. [macOS](#7-macos)
+8. [Windows MobaXterm](#8-windows-mobaxterm)
+9. [Windows WSL2](#9-windows-wsl2)
+10. [LSP manager and server lifecycle](#10-lsp-manager-and-server-lifecycle)
+11. [Plugin and completion architecture](#11-plugin-and-completion-architecture)
+12. [YAML, Ansible and diagnostic display](#12-yaml-ansible-and-diagnostic-display)
+13. [Lightline and colorscheme](#13-lightline-and-colorscheme)
+14. [GitHub Copilot and Codex](#14-github-copilot-and-codex)
+15. [Keyboard shortcuts and health commands](#15-keyboard-shortcuts-and-health-commands)
+16. [Certificates, proxies and security](#16-certificates-proxies-and-security)
+17. [Troubleshooting](#17-troubleshooting)
+18. [Updating, backing up and rolling back](#18-updating-backing-up-and-rolling-back)
+19. [Validation and release policy](#19-validation-and-release-policy)
 
-This release keeps the platform-specific LSP managers and fixes the remaining
-MobaXterm npm TLS problem. The MobaXterm manager still executes `node.exe` and
-`npm.cmd` directly from their working MobaXterm POSIX paths, but npm now gets a
-separate certificate policy from curl/wget:
+## 1. What changed
 
-- Node 24 uses the Windows trusted certificate store via `NODE_USE_SYSTEM_CA=1`;
-- `--ca-bundle FILE` is propagated to npm and Node using Windows-form paths;
-- npm starts with `strict-ssl=true`;
-- only recognized certificate-chain failures are eligible for a process-local
-  `strict-ssl=false` retry when insecure fallback is permitted;
-- `--strict-tls` disables that retry completely;
-- no `.npmrc` or global npm setting is modified.
+Version 2.7.2 makes GitHub Copilot and Codex **disabled unless explicitly opted
+in using booleans**, without changing any other plugin or LSP defaults.
 
-The two-manager architecture remains unchanged.
 
-### Linux and macOS
+This is a focused opt-in AI-controls update based on the 2.7.1 plugin-cleanup
+package. **OS isolation is unchanged**: Linux, macOS, MobaXterm and WSL2 have
+separate and complete Vimrc files. The language-server managers, npm pins and YAML/Ansible diagnostic policy remain unchanged.
+Copilot and Codex are now opt-in and **off by default on all platforms**.
 
-Use:
+- **Lightline is now the only statusline.** The older plugin declarations,
+  option switches, code blocks and the Vimrc's competing hand-written
+  `statusline` have been removed. `grb256` remains your default editor theme;
+  Lightline uses its `wombat` palette for the bar.
+- **Fern** replaces NERDTree as the default file explorer.
+- **Stargate** replaces EasyMotion as the default jump helper. It uses popup
+  labels instead of modifying buffer text, so it doesn't disturb diagnostics.
+- **Expand Region** replaces archived Wildfire for growing/shrinking a selection.
+- Native Vim `listchars` is the default whitespace visualization, instead of
+  an indent plugin. The original space-based indent guides remain optional.
+  `Yggdroot/indentLine` was deliberately NOT added: upstream archived it, and
+  its conceal semantics can obscure YAML/JSON markup.
+- `vim-over`, NERDTree, EasyMotion, Wildfire, and vim-indent-guides can still
+  be selected individually with the documented options below.
+- JavaScript is simplified to `pangloss/vim-javascript`; LESS, JST and
+  CoffeeScript are now separate opt-in groups. Rails, Haml, Rust and Cucumber
+  are also opt-in, rather than loaded by default.
+- Retired the unused SnipMate and YouCompleteMe alternative completion branches,
+  leaving `yegappan/lsp` and ALE as the default clients.
+- Copilot/Codex now use boolean flags in `vimrc.before.local`; neither loads by
+  default, regardless of old bundle names or previous default bundle lists.
+- All other intended optional bundles have been preserved. **No plugin version
+  snapshots, SHA pins or plugin reproducibility feature have been introduced.**
 
-```bash
-tools/lsp/lsp-manager-linux-macos.sh install --profile standard
-```
+**Versioning:** the Vimrc files have configuration revision **1.5.2** and the
+full archive is release **2.7.2**. The two LSP manager scripts keep their own
+existing script version. You do not need to reinstall language servers just
+because plugin declarations changed.
 
-This script only supports native Linux and macOS runtimes and assets.
+## 2. Choose exactly one platform
 
-### MobaXterm
+| Target runtime | Vimrc to install as `~/.vimrc` | Local template to install as `~/.vimrc.before.local` | LSP manager | AI |
+|---|---|---|---|---|
+| Native Linux | `vimrc-linux-lsp` | `vimrc.before.local-linux` | `lsp-manager-linux-macos.sh` | Copilot/Codex opt-in (both off) |
+| Native macOS | `vimrc-macos-lsp` | `vimrc.before.local-macos` | `lsp-manager-linux-macos.sh` | Copilot opt-in (off) |
+| Windows MobaXterm terminal Vim | `vimrc-windows-mobaxterm-lsp` | `vimrc.before.local-mobaxterm` | `lsp-manager-mobaxterm.sh` | AI unsupported (off) |
+| WSL2 Linux distribution | `vimrc-wsl2-lsp` | `vimrc.before.local-wsl2` | `lsp-manager-linux-macos.sh` | Copilot/Codex opt-in (both off) |
 
-Use:
+**Do not mix the files.** Install exactly one pair. All Vimrc files are
+self-contained and include their own plugin declarations and behavior. A
+separate shared Vimrc library is deliberately NOT required.
 
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install
-```
+**WSL2 is not MobaXterm.** Vim and language servers inside WSL2 are Linux
+executables. Use Linux `node`, npm and `terraform-ls`, never the Windows
+`node.exe` or the MobaXterm `npm.cmd` bridge.
 
-The MobaXterm manager is intentionally separate because MobaXterm combines a
-POSIX/Cygwin-like shell with native Windows executables. Native `node.exe` must
-not be given MobaXterm POSIX paths directly.
-
-The previous combined manager could execute a command equivalent to:
+## 3. Package contents
 
 ```text
-node.exe /home/mobaxterm/.local/share/vim-lsp/runtime/node/node_modules/npm/bin/npm-cli.js
-```
-
-Windows Node interpreted that POSIX path as a native Windows path such as:
-
-```text
-C:\home\mobaxterm\.local\share\vim-lsp\runtime\node\node_modules\npm\bin\npm-cli.js
-```
-
-That is not the real MobaXterm home path and caused:
-
-```text
-Error: Cannot find module 'C:\home\mobaxterm\...\npm-cli.js'
-```
-
-The MobaXterm manager now:
-
-1. installs the official Windows Node ZIP;
-2. verifies it against a package-pinned SHA-256 digest;
-3. invokes `node.exe` directly from its MobaXterm POSIX path;
-4. invokes the Node distribution's own `npm.cmd` directly from its MobaXterm POSIX path;
-5. keeps argument boundaries intact by using Bash arrays rather than a reconstructed command string;
-6. uses `cygpath -w` only where a native Windows-form path is actually required, such as the npm cache variable;
-7. creates MobaXterm shell wrappers that execute the installed `.cmd` language-server shims directly.
-
-This avoids passing a POSIX `npm-cli.js` pathname to `node.exe` and avoids the
-extra `cmd.exe` quoting layer that caused the 1.1.0 health-check false failure.
-
----
-
-## 2. Package layout
-
-The archive intentionally contains only the current versions of files.
-Historical versions, old ddc variants and diff/history files are not included.
-
-```text
-vim-2.6.0.11-package/
+vim-2.7.2-package/
 ├── README.md
-├── VIM-2.6.0.11-MAINTENANCE.md
-├── vim-2.6.0.11-SHA256SUMS.txt
+├── VIM-2.7.2-MAINTENANCE.md
+├── vim-2.7.2-SHA256SUMS.txt
 ├── vimrc-linux-lsp
+├── vimrc-macos-lsp
 ├── vimrc-windows-mobaxterm-lsp
-├── vimrc.before.local-1.4.1
+├── vimrc-wsl2-lsp
+├── vimrc.before.local-linux
+├── vimrc.before.local-macos
+├── vimrc.before.local-mobaxterm
+├── vimrc.before.local-wsl2
 ├── scripts/
 │   ├── install-vim-ai-linux-1.0.2.sh
 │   └── install-vim-copilot-macos-1.0.1.sh
@@ -110,102 +118,81 @@ vim-2.6.0.11-package/
             └── package-lock.json
 ```
 
-### Root directory policy
+Only the latest version of each item is packaged. No `ddc`, denops,
+previous-version files, historical `.diff` artifacts, or stale merged manager.
+All scripts belong under `scripts/`; manager tooling and npm metadata belong
+under `tools/lsp/`; Vimrc files, manual and release metadata are at the root.
 
-The archive root is reserved for:
+## 4. Requirements and prerequisites
 
-- Vimrc files;
-- Markdown documentation;
-- release checksum metadata.
+Use Vim **9.0+** with `+job` and `+channel` for yegappan/lsp. Vim 9.1 is a
+sensible baseline. The Copilot Vim extension needs at least Vim 9.0.0185,
+`+textprop`, and a compatible Node.js (GitHub currently documents Node 18+).
 
-Executable helpers belong in `scripts/`. Language-server tooling belongs in
-`tools/`.
-
----
-
-## 3. Supported platforms
-
-| Platform | Vimrc | LSP manager | AI |
-|---|---|---|---|
-| Linux | `vimrc-linux-lsp` | `lsp-manager-linux-macos.sh` | Copilot + optional Codex CLI |
-| macOS | `vimrc-linux-lsp` | `lsp-manager-linux-macos.sh` | Copilot |
-| MobaXterm | `vimrc-windows-mobaxterm-lsp` | `lsp-manager-mobaxterm.sh` | intentionally disabled |
-
-The Linux/macOS Vimrc explicitly rejects unsupported platforms. The MobaXterm
-variant is dedicated to terminal Vim inside MobaXterm and does not require or
-configure X11 Vim.
-
----
-
-## 4. Vim requirements
-
-The configuration uses Vim9-era functionality and `yegappan/lsp`.
-
-Recommended:
-
-```text
-Vim 9.1.1646 or newer
-```
-
-A newer Vim 9.2 build is preferred where available.
-
-Check with:
+Check:
 
 ```bash
-vim --version | head
+vim --version | head -n 6
+vim --version | grep -E '\+job|\+channel|\+textprop'
+command -v git curl
 ```
 
-Inside Vim:
+Common optional utilities: `rg` (ripgrep), `fzf` >= 0.54, Universal Ctags,
+`ansible-lint`, `yamllint`, `shellcheck`, `ruff`, `hadolint`, `tflint`,
+Terraform, Helm and Git. A tool is only needed if you use its feature.
 
-```vim
-:version
-```
+The LSP manager provisions its own Node runtime under
+`~/.local/share/vim-lsp/`; it does not require overwriting system Node.
+GitHub Copilot runs through its own plugin, which also needs `node` on PATH.
 
----
+### Files and paths
 
-## 5. Initial installation
+| Path | Purpose |
+|---|---|
+| `~/.vimrc` | Main Vim configuration chosen for this OS |
+| `~/.vimrc.before.local` | OS-specific bundles, statusline and theme settings, sourced early |
+| `~/.vimrc.local` | User modifications sourced near the end |
+| `~/.gvimrc.local` | GUI-only overrides where available |
+| `~/.vim/autoload/plug.vim` | vim-plug manager code |
+| `~/.vim/plugged/` | Plugins installed by vim-plug |
+| `~/.local/share/vim-lsp/` | Independently managed language-server runtime |
+| `~/.local/share/vim-lsp/bin/` | Stable language-server wrappers |
 
-### 5.1 Linux
+## 5. Install and migrate safely
 
-Back up the current configuration:
+These steps do not remove your existing profile or plugin tree:
+
+1. Unpack the release to a working directory.
+2. Back up the current `~/.vimrc`, `~/.vimrc.before.local`, and
+   `~/.vimrc.local` if present.
+3. Copy the matching Vimrc and matching local template, not all four profiles.
+4. Compare customizations from your old local files before overwriting them.
+5. Exit Vim completely and restart it; then run `:PlugInstall` or
+   `:PlugUpdate`, followed by `:PlugClean` **after** reviewing removal prompts.
+6. Install/check the OS's language servers using the matching manager.
+7. Run `:KDLspHealth`, `:KDModernHealth` and, where supported,
+   `:KDAIHealth`.
+
+Back up first:
 
 ```bash
-cp -a ~/.vimrc ~/.vimrc.backup 2>/dev/null || true
-cp -a ~/.vim ~/.vim.backup 2>/dev/null || true
+stamp=$(date +%Y%m%d-%H%M%S)
+[ ! -f "$HOME/.vimrc" ] || cp -p "$HOME/.vimrc" "$HOME/.vimrc.$stamp.bak"
+[ ! -f "$HOME/.vimrc.before.local" ] || cp -p "$HOME/.vimrc.before.local" "$HOME/.vimrc.before.local.$stamp.bak"
+[ ! -f "$HOME/.vimrc.local" ] || cp -p "$HOME/.vimrc.local" "$HOME/.vimrc.local.$stamp.bak"
 ```
 
-Install the Vimrc:
+If your old local profile had extra custom variables, merge them into the
+new OS-specific template; do not blindly discard site-specific settings.
+
+## 6. Linux
+
+From the extracted `vim-2.7.2-package/` directory:
 
 ```bash
-cp vimrc-linux-lsp ~/.vimrc
-```
-
-Install vim-plug if it is not already available, then start Vim and run:
-
-```vim
-:PlugInstall
-```
-
-Install the managed language servers:
-
-```bash
-tools/lsp/lsp-manager-linux-macos.sh install --profile standard
-```
-
-Then restart Vim and run:
-
-```vim
-:KDLspHealth
-:KDModernHealth
-```
-
-### 5.2 macOS
-
-Use the same Vimrc and manager:
-
-```bash
-cp vimrc-linux-lsp ~/.vimrc
-tools/lsp/lsp-manager-linux-macos.sh install --profile standard
+cp -p vimrc-linux-lsp "$HOME/.vimrc"
+cp -p vimrc.before.local-linux "$HOME/.vimrc.before.local"
+vim
 ```
 
 Inside Vim:
@@ -216,970 +203,622 @@ Inside Vim:
 :KDModernHealth
 ```
 
-### 5.3 MobaXterm
-
-Install the dedicated Vimrc:
-
-```bash
-cp vimrc-windows-mobaxterm-lsp ~/.vimrc
-```
-
-Install plugins:
-
-```vim
-:PlugInstall
-```
-
-Install language servers with the dedicated manager:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install
-```
-
-Do **not** use the Linux/macOS manager from MobaXterm.
-
-After installation:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh check
-tools/lsp/lsp-manager-mobaxterm.sh list
-```
-
-Then restart Vim and run:
-
-```vim
-:KDLspHealth
-:KDModernHealth
-```
-
----
-
-## 6. LSP manager architecture
-
-The manager installs private, pinned runtime components below:
-
-```text
-~/.local/share/vim-lsp/
-```
-
-Default layout:
-
-```text
-~/.local/share/vim-lsp/
-├── bin/
-├── cache/
-├── npm/
-├── runtime/
-│   └── node/
-└── servers/
-```
-
-`bin/` is the stable interface used by Vim. The actual Node runtime and server
-versions can be replaced without changing the Vimrc server commands.
-
-### Why use a private Node runtime?
-
-It avoids depending on whichever system Node/npm version happens to be
-installed. The package pins the Node version and npm-based language-server
-versions so the editor environment is reproducible.
-
----
-
-## 7. Linux/macOS LSP manager
-
-### 7.1 Install the standard profile
+Install the standard managed LSP set:
 
 ```bash
 tools/lsp/lsp-manager-linux-macos.sh install --profile standard
+tools/lsp/lsp-manager-linux-macos.sh check
 ```
 
-The standard profile installs:
-
-- the private Node runtime;
-- npm language servers;
-- `terraform-ls`;
-- `helm_ls`;
-- `docker-language-server`.
-
-### 7.2 Minimal profile
+For only the npm-based LSP servers:
 
 ```bash
 tools/lsp/lsp-manager-linux-macos.sh install --profile minimal
 ```
 
-The minimal profile installs only the Node/npm language-server stack.
-
-### 7.3 Update
+Optional Linux AI prerequisites script:
 
 ```bash
-tools/lsp/lsp-manager-linux-macos.sh update --profile standard
+bash scripts/install-vim-ai-linux-1.0.2.sh --help
 ```
 
-### 7.4 Check
+Review its supported options and installation actions before running it.
+Linux uses POSIX wrappers for the managed servers and never routes npm through
+`cmd.exe`.
+
+## 7. macOS
+
+Use Homebrew or your normal package manager for Vim 9.x, Git, curl, and any
+other desired utilities. From the extracted package:
 
 ```bash
-tools/lsp/lsp-manager-linux-macos.sh check --profile standard
+cp -p vimrc-macos-lsp "$HOME/.vimrc"
+cp -p vimrc.before.local-macos "$HOME/.vimrc.before.local"
+vim
 ```
 
-### 7.5 List server wrappers
+Then:
+
+```vim
+:PlugInstall
+:KDLspHealth
+:KDAIHealth
+```
+
+Install native macOS language servers:
 
 ```bash
-tools/lsp/lsp-manager-linux-macos.sh list
+tools/lsp/lsp-manager-linux-macos.sh install --profile standard
+tools/lsp/lsp-manager-linux-macos.sh check
 ```
 
-### 7.6 Show pinned versions
+Optional Copilot prerequisite installer:
 
 ```bash
-tools/lsp/lsp-manager-linux-macos.sh versions
+bash scripts/install-vim-copilot-macos-1.0.1.sh
 ```
 
-### 7.7 Rebuild the npm lock
+The macOS Vimrc uses macOS fonts and GitHub Copilot. It does not include the
+Linux-only Codex Vim command implementation or Linux GUI `wmctrl` mappings.
 
-For package maintenance only:
+## 8. Windows MobaXterm
+
+Use **the MobaXterm terminal Vim**, not WSL2's Vim. Copy the MobaXterm
+profile into its persistent home:
 
 ```bash
-tools/lsp/lsp-manager-linux-macos.sh lock
+cp -p vimrc-windows-mobaxterm-lsp "$HOME/.vimrc"
+cp -p vimrc.before.local-mobaxterm "$HOME/.vimrc.before.local"
+vim
 ```
 
-### 7.8 Clean the managed runtime
+Inside Vim:
 
-This deletes the complete managed LSP tree:
-
-```bash
-tools/lsp/lsp-manager-linux-macos.sh clean --yes
+```vim
+:PlugInstall
+:KDLspHealth
+:KDModernHealth
 ```
 
----
-
-## 8. MobaXterm LSP manager
-
-### 8.1 Normal installation
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install
-```
-
-The default profile is `mobaxterm`, so this is equivalent to:
+Install server wrappers and the Windows Node runtime:
 
 ```bash
 tools/lsp/lsp-manager-mobaxterm.sh install --profile mobaxterm
+tools/lsp/lsp-manager-mobaxterm.sh check
 ```
 
-### 8.2 Minimal profile
+The MobaXterm manager translates POSIX paths using `cygpath -w`, launches
+native Windows `node.exe` and `npm.cmd` via `cmd.exe`, and verifies downloaded
+archives with official/pinned SHA-256 hashes. Never run the Linux/macOS manager
+inside MobaXterm.
+
+**Important:** MobaXterm's root directory may be ephemeral unless its home
+folder is persisted. Ensure your `~/.vim` and `~/.local/share/vim-lsp`
+location is retained between sessions.
+
+This MobaXterm Vimrc has no supported Copilot/Codex integration. Setting either AI flag to true reports a warning but does not enable AI.
+
+## 9. Windows WSL2
+
+Open the WSL2 **Linux distribution shell** and execute the following there
+(not in PowerShell, CMD, or a MobaXterm shell):
 
 ```bash
-tools/lsp/lsp-manager-mobaxterm.sh install --profile minimal
+uname -r
+cat /proc/sys/kernel/osrelease
+cp -p vimrc-wsl2-lsp "$HOME/.vimrc"
+cp -p vimrc.before.local-wsl2 "$HOME/.vimrc.before.local"
+vim
 ```
 
-### 8.3 Update
+The WSL2 Vimrc checks for a WSL2 kernel before configuring Vim. The check
+prevents accidental loading on a conventional Linux host or WSL1.
+
+Inside Vim:
+
+```vim
+:PlugInstall
+:KDLspHealth
+:KDModernHealth
+:KDAIHealth
+```
+
+Install **Linux** LSP binaries inside the WSL2 distribution:
 
 ```bash
-tools/lsp/lsp-manager-mobaxterm.sh update
+tools/lsp/lsp-manager-linux-macos.sh install --profile standard
+tools/lsp/lsp-manager-linux-macos.sh check
 ```
 
-### 8.4 Check
+Do not reuse an LSP home from a Windows drive. The default Linux
+`~/.local/share/vim-lsp` is preferable. Keep source repos in the WSL2 Linux
+filesystem for responsive file watching where practical. The separate WSL2
+profile also accepts CRLF files by using `fileformats=unix,dos`.
 
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh check --profile mobaxterm
-```
+The Linux AI installer is optional; review it and its use of `sudo` first.
 
-The check executes the private runtime exactly as MobaXterm does from the
-interactive shell:
+## 10. LSP manager and server lifecycle
 
-```bash
-~/.local/share/vim-lsp/runtime/node/node.exe --version
-~/.local/share/vim-lsp/runtime/node/npm.cmd --version
-```
+Two tested platform-specific **manager** scripts exist, both script version
+1.1.0. They own server deployment and are NOT Vimrc files:
 
-A healthy runtime therefore reports both versions, for example:
+| Action | Linux / macOS / WSL2 | MobaXterm |
+|---|---|---|
+| Full profile | `install --profile standard` | `install --profile mobaxterm` |
+| Minimal profile | `install --profile minimal` | `install --profile minimal` |
+| Check health | `check` | `check` |
+| List binary wrappers | `list` | `list` |
+| Show pinned versions | `versions` | `versions` |
+| Reinstall/update | `update` | `update` |
+| Refresh npm seed lock | `lock` | `lock` |
+| Delete manager root | `clean --yes` | `clean --yes` |
 
-```text
-node:        /home/mobaxterm/.local/share/vim-lsp/runtime/node/node.exe (v24.19.0)
-npm bridge:  /home/mobaxterm/.local/share/vim-lsp/runtime/node/npm.cmd (11.17.0)
-```
-
-`check` also validates every server required by the selected profile. It returns
-exit status `0` only when Node, npm and all required servers are available. An
-incomplete installation returns exit status `1` and ends with a summary such as:
-
-```text
-status:      FAILED (12 required components unavailable)
-```
-
-A complete profile ends with:
-
-```text
-status:      OK
-```
-
-### 8.5 List
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh list
-```
-
-### 8.6 Versions
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh versions
-```
-
-### 8.7 Clean
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh clean --yes
-```
-
----
-
-## 9. MobaXterm Node/npm path handling
-
-This is an important implementation detail.
-
-MobaXterm provides a Windows-command bridge that lets its shell execute both
-Windows PE binaries and `.cmd` files directly from MobaXterm POSIX paths. For
-this runtime the supported calls are therefore simply:
-
-```bash
-/home/mobaxterm/.local/share/vim-lsp/runtime/node/node.exe --version
-/home/mobaxterm/.local/share/vim-lsp/runtime/node/npm.cmd --version
-```
-
-The manager deliberately does **not** run:
-
-```bash
-node.exe /home/mobaxterm/.../npm-cli.js
-```
-
-because native Windows Node can reinterpret that POSIX path as
-`C:\home\mobaxterm\...`, which is not the MobaXterm home mapping.
-
-It also does not add an unnecessary `cmd.exe /c` layer around normal Node/npm
-operations. Direct execution preserves MobaXterm's working path translation and
-keeps each command-line argument separate. `cygpath -w` remains available for
-values that native Windows tools must consume as path strings, such as the
-private npm cache path.
-
-This is why the MobaXterm and Linux/macOS managers remain separate scripts.
-
----
-
-## 10. MobaXterm TLS and self-signed certificate chains
-
-MobaXterm installations can contain a curl/OpenSSL CA configuration that does
-not trust a local enterprise, proxy or inspection CA. Typical output is:
-
-```text
-curl: (60) SSL certificate problem: self-signed certificate in certificate chain
-```
-
-The dedicated MobaXterm manager handles downloads in this order:
-
-1. verified `wget`, when available;
-2. verified `curl`;
-3. if both verified methods fail and insecure fallback is allowed, an insecure
-   transport retry is attempted;
-4. only one concise warning is printed for the fallback instead of repeating
-   the complete curl certificate error for every file.
-
-### Recommended solution: provide the CA bundle
-
-If you have the correct PEM CA chain:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install \
-  --ca-bundle /path/to/company-ca-bundle.pem
-```
-
-This is preferred because normal TLS certificate verification stays enabled.
-
-### Enforce verified TLS only
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install --strict-tls
-```
-
-or:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install --no-insecure-fallback
-```
-
-If the MobaXterm CA store still cannot validate the server certificate, the
-install will stop rather than use the fallback.
-
-### Node integrity during TLS fallback
-
-The package pins the SHA-256 values for both official Node 24.19.0 Windows ZIPs
-in `tools/lsp/versions.conf`.
-
-For x64:
-
-```text
-57f71ab3652e797d84acddc79c81cc9ff1c6ddb2a1974cdb83f00fee9bff4c73
-```
-
-For ARM64:
-
-```text
-8502f4a50b458d4cc38ed8f2001556c2cd239d464920f74017926ccb1e1c157f
-```
-
-The downloaded Node archive must match the appropriate pinned value before it
-is extracted.
-
----
-
-
-### npm TLS handling in MobaXterm
-
-The MobaXterm manager treats npm as a separate TLS client from curl/wget. With
-Node 24.19.0 it first exports `NODE_USE_SYSTEM_CA=1`, allowing Windows Node to
-use certificates trusted by the Windows certificate store. This often handles
-corporate TLS interception even when MobaXterm curl/wget cannot validate the
-chain.
-
-When `--ca-bundle FILE` is supplied, the manager also passes that bundle to npm
-through `npm_config_cafile` and to Node through `NODE_EXTRA_CA_CERTS`, using a
-Windows-form path generated by `cygpath`. npm keeps `strict-ssl=true`.
-
-If npm still fails specifically with a certificate-chain error and insecure
-fallback is allowed, the manager retries only that npm command with
-`npm_config_strict_ssl=false`. It does not write this setting into the user's
-`.npmrc` and therefore does not permanently weaken npm. The package versions
-remain pinned and the generated npm lockfile contains integrity hashes for the
-downloaded package tarballs. Use `--strict-tls` to prohibit this retry.
-
-## 11. Managed server versions
-
-The central pins are stored in:
-
-```text
-tools/lsp/versions.conf
-```
-
-Current native/runtime pins include:
-
-| Component | Version |
-|---|---:|
-| Node | 24.19.0 |
-| terraform-ls | 0.39.0 |
-| Docker Language Server | 0.20.1 |
-| helm-ls | rolling `master` release |
-
-Pinned npm packages are stored in:
-
-```text
-tools/lsp/npm/package.json
-```
-
-They include the Ansible, Bash, YAML, Python, TypeScript, JSON, HTML, CSS and Vim
-language-server components used by this configuration.
-
-Display the exact current pins with:
+Prefix the action with the appropriate full script path. For example:
 
 ```bash
 tools/lsp/lsp-manager-linux-macos.sh versions
+tools/lsp/lsp-manager-linux-macos.sh update --profile standard
+tools/lsp/lsp-manager-linux-macos.sh list
 ```
 
-or on MobaXterm:
+MobaXterm equivalent:
 
 ```bash
 tools/lsp/lsp-manager-mobaxterm.sh versions
+tools/lsp/lsp-manager-mobaxterm.sh update
+tools/lsp/lsp-manager-mobaxterm.sh list
 ```
 
----
+`clean --yes` is **destructive**: it deletes the complete managed LSP root,
+not just one server. It does not intentionally delete `~/.vimrc` or your
+regular plugins. Back up custom files in the manager root before cleaning it.
 
-## 12. Docker Language Server verification
+### Reproducibility and integrity
 
-Docker Language Server release assets include the release version in the
-filename. For version 0.20.1, for example:
+`versions.conf` pins Node and standalone language server versions;
+`tools/lsp/npm/package.json` pins npm top-level dependencies. The included
+`package-lock.json` is a seed lock and is expanded into a full transitive lock
+on first install; full offline reproducibility is therefore **not** claimed.
 
-```text
-docker-language-server-linux-amd64-v0.20.1
+The Docker Language Server asset has a version suffix in its name. That was
+fixed in the previous manager version: `docker-language-server-${OS}-${ARCH}-v${DOCKER_LS_VERSION}`
+(with `.exe` on MobaXterm). The manager refuses installation if a published
+GitHub SHA-256 digest cannot be verified. Node archives are also checksum
+verified before extraction.
+
+The default managed Node pin remains `24.19.0` until it is explicitly tested
+and changed in a later manager release. It is *not* automatically updated to
+whatever upstream advertises as the newest version.
+
+### CA bundle and strict TLS examples
+
+```bash
+# Linux/macOS/WSL2
+ tools/lsp/lsp-manager-linux-macos.sh install --profile standard \
+   --ca-bundle "$HOME/.config/certs/internal-ca.pem" --strict-tls
+
+# MobaXterm
+ tools/lsp/lsp-manager-mobaxterm.sh install --profile mobaxterm \
+   --ca-bundle "$HOME/company-ca-bundle.pem" --strict-tls
 ```
 
-The managers build the versioned asset name before retrieving GitHub release
-metadata and require a SHA-256 asset digest. If GitHub does not provide a digest
-for the exact selected asset, installation fails closed rather than silently
-installing an unverified binary.
+## 11. Plugin and completion architecture
 
----
+Interactive LSP completion remains `yegappan/lsp`. ALE remains the separate
+asynchronous lint/fix engine. The previous editor-specific `yamllint` rules and
+bottom-only diagnostics are preserved, including the disabled ALE virtual
+text. The older Denops/ddc and alternative completion stacks are not packaged.
 
-## 13. Vim LSP behavior
+### Default plugin groups, by operating system
 
-`yegappan/lsp` is the only LSP/completion client in the standard configuration.
-The old ddc/denops stack is not included.
+| OS | Default groups |
+|---|---|
+| Linux | `general`, `lsp`, `ale`, `programming`, `markdown`, `ansible`, `python`, `docker`, `javascript`, `html`, `terraform`, `helm` |
+| macOS | Same standard non-AI bundles as Linux |
+| MobaXterm | Same non-AI bundles as Linux; AI unsupported |
+| WSL2 | Same default set as Linux, using native WSL2 executables |
 
-Important LSP behavior:
+`general` includes Fern, Stargate, Expand Region, Lightline, FZF, Fugitive's
+companion GitGutter, Surround, Repeat, Lexima, visual-multi, Undotree, Sleuth,
+Matchup, conflict markers and the existing themes. `programming` includes
+Fugitive, GV, Commentary, Tabular, Rainbow and conditional Tagbar (when
+`ctags` is installed). FZF with ripgrep, Ansible syntax, Python syntax,
+Terraform, Helm and Markdown retain their previous behavior.
+
+### Choosing one plugin implementation per feature
+
+All four selectors must be placed in the **matching**
+`~/.vimrc.before.local` file. If not specified, the new default is selected.
+
+| Feature | Default (no setting required) | Previous plugin option |
+|---|---|---|
+| File browser | `lambdalisue/vim-fern` | `preservim/nerdtree` |
+| On-screen jump | `monkoose/vim9-stargate` | `easymotion/vim-easymotion` |
+| Expand selection | `terryma/vim-expand-region` | `gcmt/wildfire.vim` (archived) |
+| Whitespace/indentation display | Native Vim `listchars` (no plugin) | `preservim/vim-indent-guides` |
+
+To use **all four previous plugins** instead of the new defaults, add:
 
 ```vim
-'autoComplete': v:true
+let g:kd_explorer = 'nerdtree'
+let g:kd_motion = 'easymotion'
+let g:kd_selection = 'wildfire'
+let g:kd_indent_display = 'vim-indent-guides'
+```
+
+For any other mixture, simply include the settings you want to change. The
+four selectors are independent and mutually exclusive for each feature, so
+no single Vim session tries to load two competing plugins for one feature.
+Invalid selector values are rejected during configuration loading.
+
+The standard mappings are: `<F7>` toggles the current file browser,
+`<leader>nf` reveals the current file, `<leader>nb` opens the browser;
+`<leader>j` and `<leader>J` provide one-/two-character motion search;
+`<leader>+` expands text selections and `<leader>-` contracts them when
+Expand Region is selected. `<F8>` toggles the optional legacy indentation
+plugin when installed. Stargate's `<Cmd>` mappings also work in Visual and
+operator-pending modes. Fern's `:Fern . -drawer -toggle -keep` is used for the
+browser; NERDTree has its original commands when selected instead.
+
+**Indentation note:** Native `listchars` renders tabs, trailing whitespace and
+nonbreaking spaces. It does **not** draw every two-space YAML indentation
+level. Choose `g:kd_indent_display = 'vim-indent-guides'` if you still want
+vertical markers in space-indented code. The legacy plugin starts disabled,
+and `<F8>` toggles it. We do not enable `conceal` to fake guides.
+
+### Optional plugin bundles
+
+All of these are available, but are deliberately off unless added to
+`g:kd_bundle_groups` in the appropriate `vimrc.before.local`:
+
+| Group | Plugins or purpose |
+|---|---|
+| `rails` | Ruby on Rails (Ruby syntax remains available without this group) |
+| `haml` | Haml support; basic HTML/CSS remains in `html` |
+| `javascript_less` | LESS syntax |
+| `javascript_jst` | JST/EJS template syntax |
+| `javascript_coffee` | CoffeeScript syntax |
+| `rust` | rust.vim |
+| `cucumber` | Cucumber syntax and pipe alignment |
+| `vim_over` | Legacy interactive substitute interface |
+| `extra` | Sessionman, Bufferline, Abolish, indent and user text objects |
+| `writing` | Reedes writing helpers |
+| `colorschemes` | Additional colorschemes; `grb256` works without this group |
+| `gist` | GitHub Gist client and dependency |
+| `php` | PIV, namespace and Twig syntax |
+| `go`, `scala`, `haskell`, `puppet`, `elixir`, `asciidoc` | Respective language-specific integrations |
+
+The standard PHP, Go and miscellaneous syntax autocmds built into Vim are not
+removed merely because these optional plugins are off. The `docker` group
+continues to use Vim's native Dockerfile syntax and the external Docker LS.
+`markdown` still gets Tabular even when `programming` is switched off.
+
+Example: install Rust, Cucumber and legacy vim-over without enabling every
+miscellaneous plugin:
+
+```vim
+let g:kd_bundle_groups += ['rust', 'cucumber', 'vim_over']
+```
+
+In Vim, after updating the plugin declarations:
+
+```vim
+:PlugInstall
+:PlugStatus
+:PlugClean
+```
+
+**Review** the `:PlugClean` list before approving deletions. You can keep
+unused plugin directories installed without loading them until ready to
+clean up. We intentionally did not generate a `PlugSnapshot` or pin plugin
+Git commits in this release.
+
+### Where yegappan/lsp finds servers
+
+The Vimrc adds `~/.local/share/vim-lsp/bin` to PATH when present and prefers
+managed wrappers for Bash, YAML, Ansible, Pyright, TypeScript, VS Code
+extracted LSPs, Vim, Terraform, Helm and Docker. Run `:KDLspHealth` to inspect
+resolved paths. Language servers are managed by the OS-specific manager under
+`tools/lsp/`, independently of Vim plugins.
+
+## 12. YAML, Ansible and diagnostic display
+
+The following three **yamllint style rules remain disabled** in both ordinary
+YAML buffers and `yaml.ansible` buffers:
+
+```yaml
+rules:
+  line-length: disable
+  comments-indentation: disable
+  truthy: disable
+```
+
+The Vimrc configures ALE's yamllint invocation and filters matching
+LSP/ALE diagnostics defensively. Other meaningful errors (such as YAML parse
+failures) are retained.
+
+Messages are displayed **at the bottom of Vim**, for example:
+
+```text
+[yamllint] Error: syntax error: expected a block end
+```
+
+Messages must never be visually appended to the end of a source line as
+`# E: ...`. These settings stay enabled in every platform profile:
+
+```vim
+let g:ale_virtualtext_cursor = 'disabled'
+let g:ale_echo_cursor = 1
+let g:ale_echo_msg_format = '[%linter%] %severity%: %s'
+let g:ale_open_list = 0
+let g:ale_set_loclist = 1
+```
+
+For yegappan/lsp, diagnostic popups and virtual text are disabled while
+status-line reporting stays on:
+
+```vim
 'showDiagInPopup': v:false
 'showDiagOnStatusLine': v:true
 'showDiagWithVirtualText': v:false
 ```
 
-This means:
+Changing the Vimrc does not change your global `~/.config/yamllint/config` or
+CI yamllint rules. This is the editor-specific policy.
 
-- LSP completion remains enabled;
-- diagnostic popups are not automatically opened;
-- diagnostic virtual text is disabled;
-- diagnostics can be shown in the bottom/status area instead.
+## 13. Lightline and colorscheme
 
-### Core LSP mappings
-
-| Mapping | Action |
-|---|---|
-| `gd` | go to definition |
-| `gr` | show references |
-| `gi` | go to implementation |
-| `gt` | go to type definition |
-| `K` | hover information |
-| `<leader>rn` | rename |
-| `[g` | previous diagnostic |
-| `]g` | next diagnostic |
-| `<leader>ca` | code action |
-| `<leader>lf` | format |
-
----
-
-## 14. Completion behavior
-
-The Vim popup menu is used for completion.
-
-When the popup menu is visible:
-
-| Key | Behavior |
-|---|---|
-| `Tab` | next completion item |
-| `Shift-Tab` | previous completion item |
-| `Enter` | accept completion |
-| `Esc` | close/accept popup state and return to normal editing |
-
-On Linux/macOS, when GitHub Copilot is active, Copilot's ghost-text acceptance
-mapping takes precedence where configured.
-
-MobaXterm contains no AI plugin group, so completion there is purely Vim/LSP.
-
----
-
-## 15. ALE linting policy
-
-ALE is used for external linting and fixing, not as a second LSP client.
-
-The configuration explicitly sets:
+**Lightline is the only statusline implementation** in all four profiles.
+The installed before-local templates preserve:
 
 ```vim
-let g:ale_disable_lsp = 1
-let g:ale_linters_explicit = 1
-let g:ale_lint_on_text_changed = 'never'
-let g:ale_lint_on_insert_leave = 1
-let g:ale_lint_on_save = 1
-let g:ale_lint_on_enter = 1
+let g:kd_use_lightline = 1
+let g:kd_colorscheme = 'grb256'
 ```
 
-### Diagnostic presentation
+`g:kd_use_lightline` remains for continuity with your previous local files,
+but is no longer a statusline selector: Lightline is always declared when the
+`general` bundle is enabled. `grb256` stays the editor's default colorscheme.
+The Lightline palette is `wombat`, and its existing optional patched-font
+separators are preserved. Install a font containing those glyphs if necessary.
+There is no competing hand-written Vim statusline or second statusline plugin.
 
-ALE virtual/end-of-line diagnostic text is disabled:
+You may change `g:kd_colorscheme` in `~/.vimrc.before.local` without editing
+the four platform-specific Vimrc files.
+
+## 14. GitHub Copilot and Codex
+
+**All AI functionality is disabled by default.** Each matching OS-specific
+`vimrc.before.local-*` template contains these independent booleans:
 
 ```vim
-let g:ale_virtualtext_cursor = 'disabled'
+let g:kd_enable_copilot = v:false
+let g:kd_enable_codex = v:false
 ```
 
-Diagnostics are echoed in the bottom Vim message area:
+Use `v:true` (or `1`) to opt in, and `v:false` (or `0`) to turn a feature off.
+These are true feature switches, not just plugin preferences: when off, the
+Copilot plugin is not declared, Copilot-specific options/mappings are absent,
+and Codex Vim commands are not defined. Old `github_copilot` or `codex` entries
+in `g:kd_bundle_groups` **cannot** bypass these booleans.
+
+| Platform | `kd_enable_copilot = v:true` | `kd_enable_codex = v:true` |
+|---|---|---|
+| Linux | Loads GitHub Copilot | Adds native Codex CLI Vim commands |
+| macOS | Loads GitHub Copilot | Unsupported; warning (no commands added) |
+| WSL2 | Loads Copilot in Linux | Adds native Linux Codex CLI Vim commands |
+| MobaXterm | Unsupported; warning | Unsupported; warning |
+
+To enable Copilot only (Linux, macOS or WSL2), edit your installed
+`~/.vimrc.before.local`:
 
 ```vim
-let g:ale_echo_cursor = 1
-let g:ale_echo_msg_format = '[%linter%] %severity%: %s'
+let g:kd_enable_copilot = v:true
+let g:kd_enable_codex = v:false
 ```
 
-The location list is maintained, but it is not automatically opened:
+To enable only Codex CLI (Linux/WSL2):
 
 ```vim
-let g:ale_open_list = 0
-let g:ale_set_loclist = 1
+let g:kd_enable_copilot = v:false
+let g:kd_enable_codex = v:true
 ```
 
-Therefore text such as this must not be rendered at the end of your YAML line:
+To enable both on Linux/WSL2, set both flags to `v:true`. Restart Vim after
+changing them. Run `:PlugInstall` when Copilot is newly enabled; only run
+`:PlugClean` after reviewing its proposed removals. Disabling a flag does not
+uninstall any previously installed plugin or CLI.
 
-```text
-# E: line too long (122 > 80 characters)
-```
-
-### YAML/yamllint rules intentionally suppressed
-
-The package disables these yamllint style rules for YAML and Ansible YAML:
-
-- `line-length`;
-- `comments-indentation`;
-- `truthy`.
-
-The configuration is equivalent to:
+The Copilot plugin requires an available compatible `node` on PATH and a
+completed GitHub authorization. Once activated and installed, run:
 
 ```vim
-let g:ale_yaml_yamllint_options = "-d '{extends: default, rules: {line-length: disable, comments-indentation: disable, truthy: disable}}'"
-```
-
-So messages such as these should not be shown:
-
-```text
-[yamllint] Warning: comment not indented like content
-line too long (122 > 80 characters)
-truthy value should be one of ...
-```
-
-Other real YAML/Ansible issues remain enabled.
-
-### ALE mappings
-
-| Mapping | Action |
-|---|---|
-| `<leader>zl` | run ALE lint |
-| `<leader>zf` | run ALE fix |
-| `<leader>zn` | next ALE issue |
-| `<leader>zp` | previous ALE issue |
-
----
-
-## 16. Health commands
-
-### LSP health
-
-```vim
-:KDLspHealth
-```
-
-Compatibility alias:
-
-```vim
-:KDCompletionHealth
-```
-
-### Modern tooling health
-
-```vim
-:KDModernHealth
-```
-
-### AI health on Linux/macOS
-
-```vim
+:Copilot setup
+:Copilot status
 :KDAIHealth
 ```
 
-MobaXterm intentionally has no AI configuration.
+Copilot `<Tab>`/`<C-G>` acceptance and `<leader>c...` mappings are defined
+only when the option is on **and** the Copilot plugin has been installed.
+LSP completion remains independent of Copilot.
 
----
+Codex is not a vim-plug plugin; it is an optional Vim command integration for
+the separately installed and authenticated `codex` CLI. When enabled on Linux
+or WSL2, commands include `:AIAsk`, `:AIEdit`, `:AIExplain`, `:AIFix`,
+`:AIRefactor`, `:AITest`, `:AIDocument`, `:AIGitReview`, `:AIPrompt` and `:AIOpen`.
+Codex commands can interact with local repository files, and write commands
+can change files. Save buffers and review Git changes as before.
 
-## 17. Useful plugin mappings
+The AI installer helpers under `scripts/` are **manual tools**; flipping a
+boolean does not automatically run an installer, download runtimes or perform
+GitHub/OpenAI authentication.
 
-### FZF
+## 15. Keyboard shortcuts and health commands
 
-| Mapping | Action |
+| Mapping / command | Action |
 |---|---|
-| `<leader>ff` | files |
-| `<leader>fg` | Git files |
-| `<leader>fb` | buffers |
-| `<leader>fl` | lines |
-| `<leader>fh` | history |
-| `<leader>fc` | commits |
-| `<leader>fr` | ripgrep search |
+| `<F7>` | Toggle selected file-browser implementation (Fern by default) |
+| `<leader>nf`, `<leader>nb` | Reveal current file / open selected browser |
+| `<leader>j`, `<leader>J` | One-/two-character on-screen jump (Stargate by default) |
+| `<leader>+`, `<leader>-` | Expand/shrink selection (Expand Region; shrink in Visual mode) |
+| `<F8>` | Toggle original vim-indent-guides if selected; not mapped for native guides |
+| `:KDLspHealth` | Vim version and managed language-server availability |
+| `:KDCompletionHealth` | Alias for `:KDLspHealth` |
+| `:KDModernHealth` | Installed utility and Vim plugin diagnostic checks |
+| `:KDAIHealth` | AI availability (defined when a supported AI feature is enabled) |
+| `gd`, `gr`, `gi`, `gt`, `K` | LSP definition, references, implementation, type, hover |
+| `[g`, `]g` | Previous/next LSP diagnostic |
+| `<leader>rn`, `<leader>ca`, `<leader>lf` | LSP rename, code action, formatting |
+| `<leader>zl`, `<leader>zf` | ALE lint and ALE fix |
+| `<leader>zn`, `<leader>zp` | Next/previous ALE diagnostic |
+| `<leader>cp`, `<leader>cs` | Copilot panel/status on supported profiles |
+| `<leader>as` | AI status on supported profiles |
 
-### Git/Fugitive
+The default leader is a comma unless you override `g:kd_leader`. Existing
+project-specific mappings outside the plugin replacements remain intact.
 
-| Mapping | Action |
-|---|---|
-| `<leader>gs` | Git status/interface |
-| `<leader>gd` | Git diff split |
-| `<leader>gc` | commit |
-| `<leader>gb` | blame |
-| `<leader>gl` | Git log |
-| `<leader>gp` | push |
-| `<leader>gr` | read from Git |
-| `<leader>gw` | write/stage |
-| `<leader>ge` | edit Git object |
-| `<leader>gi` | interactive add for current file |
+## 16. Certificates, proxies and security
 
-### GitGutter
+The safest way to handle an internal TLS-intercepting proxy is to install its
+trust anchor in the platform CA store or use a complete trusted bundle with
+`--ca-bundle`. The LSP managers also support `--strict-tls`, which disables
+transport fallback. Without it, the old manager behavior may retry with
+insecure transport after verified TLS fails. Although certain archives are
+checksum verified, this is **not equivalent** to authenticated HTTPS for all
+registry/API communication. Prefer verified TLS.
 
-| Mapping | Action |
-|---|---|
-| `<leader>gg` | toggle GitGutter |
-| `]h` | next hunk |
-| `[h` | previous hunk |
-| `<leader>hp` | preview hunk |
-| `<leader>hs` | stage hunk |
-| `<leader>hu` | undo hunk |
-
-### Undotree
-
-```text
-F5
-<leader>u
-```
-
-Both toggle Undotree.
-
-### NERDTree
-
-```text
-F7
-```
-
-Toggles NERDTree.
-
----
-
-## 18. AI integration
-
-### Linux
-
-The Linux configuration can use:
-
-- GitHub Copilot for inline ghost-text completion;
-- OpenAI Codex CLI for deliberate code tasks.
-
-Helper:
-
-```bash
-scripts/install-vim-ai-linux-1.0.2.sh
-```
-
-### macOS
-
-The macOS profile keeps Copilot but filters out the Linux Codex bundle.
-
-Helper:
-
-```bash
-scripts/install-vim-copilot-macos-1.0.1.sh
-```
-
-### MobaXterm
-
-AI groups are intentionally excluded. There is no Copilot or Codex setup in the
-MobaXterm Vimrc.
-
----
-
-## 19. Copilot mappings
-
-When Copilot is enabled on Linux/macOS:
-
-| Mapping | Action |
-|---|---|
-| `Tab` | accept Copilot suggestion |
-| `Ctrl-G` | alternate accept |
-| `<leader>cp` | Copilot panel |
-| `<leader>cs` | status |
-| `<leader>ce` | enable |
-| `<leader>cd` | disable |
-| `<leader>cm` | model |
-| `<leader>cu` | upgrade |
-
----
-
-## 20. Codex commands on Linux
-
-The Linux Vimrc provides commands such as:
+The Vimrc's first-run vim-plug bootstrap likewise has a legacy optional
+insecure fallback. To turn it off in your installed local template:
 
 ```vim
-:AIAsk
-:AIEdit
-:AIExplain
-:AIFix
-:AIRefactor
-:AITest
-:AIDocument
-:AIGitReview
-:AIPrompt
-:AIOpen
+let g:kd_curl_allow_insecure_fallback = 0
 ```
 
-These use the external Codex CLI and are not part of MobaXterm.
+To specify your own curl trust bundle:
 
----
-
-## 21. Updating an existing installation
-
-Recommended sequence:
-
-1. extract the new package;
-2. compare your local customizations;
-3. replace the appropriate Vimrc;
-4. run `:PlugUpdate` or `:PlugInstall`;
-5. update the managed language-server runtime;
-6. fully exit and restart Vim;
-7. run the health commands.
-
-Linux/macOS:
-
-```bash
-cp vimrc-linux-lsp ~/.vimrc
-tools/lsp/lsp-manager-linux-macos.sh update --profile standard
+```vim
+let g:kd_curl_ca_bundle = expand('~/.config/certs/internal-ca.pem')
 ```
 
-MobaXterm:
+Use only a trusted, independently obtained CA bundle. Do not hardcode
+secrets or access tokens in the archive.
 
-```bash
-cp vimrc-windows-mobaxterm-lsp ~/.vimrc
-tools/lsp/lsp-manager-mobaxterm.sh update
-```
-
----
-
-## 22. Troubleshooting MobaXterm
+## 17. Troubleshooting
 
 ### `Cannot find module C:\home\mobaxterm\...\npm-cli.js`
 
-You are using the old combined manager or an old installed copy.
-
-Check which manager files exist:
-
-```bash
-find tools/lsp -maxdepth 1 -type f -name 'lsp-manager*.sh' -print
-```
-
-For 2.6.0.11 you should use:
-
-```text
-tools/lsp/lsp-manager-mobaxterm.sh
-```
-
-Clean the old managed runtime if necessary:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh clean --yes
-```
-
-Then reinstall:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install
-```
-
-
-### `npm error code SELF_SIGNED_CERT_IN_CHAIN`
-
-Version 1.1.2 fixes this separately from the Node archive download. The manager
-first lets npm use the Windows system CA store. If you have the intercepting
-root/intermediate CA as a PEM bundle, prefer:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install --profile mobaxterm \
-  --ca-bundle /path/to/company-ca-bundle.pem
-```
-
-With the default fallback policy, certificate-chain failures from npm are
-retried for the current command only with npm `strict-ssl` disabled. Nothing is
-written to the global or user npm configuration.
-
-### TLS self-signed certificate warning
-
-Best solution:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh install \
-  --ca-bundle /path/to/your-ca-chain.pem
-```
-
-If no custom CA bundle is supplied, the manager can fall back to unverified
-transport but still performs the configured checksum/digest validation.
-
-### `cygpath` missing
-
-The MobaXterm manager requires:
-
-```bash
-command -v cygpath
-command -v cmd.exe
-```
-
-Both must succeed.
-
-### `node: ... ()` or `npm bridge: ... (FAILED)` while manual commands work
-
-This was a manager 1.1.0 health-check bug. Version 1.1.1 executes the two
-commands directly instead of wrapping them in `cmd.exe`. Verify the installed
-manager version:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh --help | head
-```
-
-Then rerun:
-
-```bash
-tools/lsp/lsp-manager-mobaxterm.sh check --profile mobaxterm
-echo $?
-```
-
-If servers have not yet been installed, Node/npm should show their real
-versions but the command will correctly return `1` until all servers required
-by the profile exist.
-
-### `npm.cmd missing from private Node runtime`
-
-Remove the partial runtime and reinstall:
-
-```bash
-rm -rf ~/.local/share/vim-lsp/runtime/node
-tools/lsp/lsp-manager-mobaxterm.sh install
-```
-
-### Check private Node
+You are running an old combined manager, reusing an incompatible runtime,
+or the Windows path bridge is broken. On MobaXterm, run the **MobaXterm**
+manager from this package:
 
 ```bash
 tools/lsp/lsp-manager-mobaxterm.sh check
+tools/lsp/lsp-manager-mobaxterm.sh clean --yes  # Only if safe to delete the old manager root
+tools/lsp/lsp-manager-mobaxterm.sh install
 ```
 
----
+The script needs `cygpath` and `cmd.exe`. A failed `check` may help identify
+missing executables before cleaning anything.
 
-## 23. Troubleshooting Linux/macOS
+### Curl error 60 / self-signed certificate in chain
 
-### Wrong manager
+Export a trusted corporate CA bundle, provide it with `--ca-bundle` and
+prefer `--strict-tls`. Avoid relying on `--insecure` permanently.
 
-Do not run the MobaXterm manager on Linux/macOS. Use:
+### No diagnostics in a YAML file
 
-```bash
-tools/lsp/lsp-manager-linux-macos.sh check --profile standard
-```
+Confirm `:set filetype?`, installed `yamllint`, the `ale` bundle and
+`:ALEInfo`. The configuration only suppresses the **three** unwanted style
+rules; real errors should still appear when the cursor is on the line.
 
-### Language server not found
-
-```bash
-tools/lsp/lsp-manager-linux-macos.sh list
-ls -la ~/.local/share/vim-lsp/bin
-```
-
-Then inside Vim:
-
-```vim
-:KDLspHealth
-```
-
-### Rebuild everything
-
-```bash
-tools/lsp/lsp-manager-linux-macos.sh clean --yes
-tools/lsp/lsp-manager-linux-macos.sh install --profile standard
-```
-
----
-
-## 24. Troubleshooting diagnostics
-
-### End-of-line `# E:` text still appears
-
-Confirm the active setting:
-
-```vim
-:echo g:ale_virtualtext_cursor
-```
-
-Expected:
-
-```text
-disabled
-```
-
-Also check:
-
-```vim
-:ALEInfo
-```
-
-Fully close and restart Vim after replacing the Vimrc; settings from an already
-running Vim process are not retroactively unloaded.
-
-### yamllint still reports line length/comments indentation/truthy
+### Diagnostics appear at the end of source lines
 
 Check:
 
 ```vim
-:echo g:ale_yaml_yamllint_options
+:echo get(g:, 'ale_virtualtext_cursor', '<missing>')
+:echo get(g:, 'ale_echo_cursor', '<missing>')
+:verbose let g:ale_virtualtext_cursor
 ```
+
+Look for a later `.vimrc.local` override or an old Vim session. Exit all Vim
+processes and restart after replacing the configuration.
+
+### LSP server exists but is not found
+
+Run `:KDLspHealth`, inspect `~/.local/share/vim-lsp/bin`, and call the matching
+manager's `list` and `check`. Check filetypes with `:set ft?` and confirm the
+selected bundle includes `lsp`.
+
+### A macOS or WSL2 profile exits immediately
+
+These profiles fail closed on the wrong OS. Ensure you did not copy the native
+Linux, macOS, MobaXterm or WSL2 profile to a different target. Check
+`uname -s` and `uname -r` in that environment.
+
+### Lightline or `grb256` is missing
 
 Run:
 
 ```vim
-:ALEInfo
+:echo get(g:, 'kd_use_lightline', 0)
+:echo get(g:, 'kd_colorscheme', '')
+:PlugStatus
+:colorscheme grb256
 ```
 
-Ensure the current 2.6.0.11 Vimrc is actually loaded.
+Ensure the matching `vimrc.before.local-*` template was copied to
+`~/.vimrc.before.local` and that the `general` plugin bundle is installed.
+
+## 18. Updating, backing up and rolling back
+
+- Back up `~/.vimrc*` and any custom user file first.
+- Use the matching release's Vimrc and local template for the current OS.
+- The manager's `install/update` operations are independent of copying Vimrc.
+- After changing plugin declarations, run `:PlugInstall` and review `:PlugClean`.
+- Existing plugin directories may remain on disk after upgrade. `:PlugClean`
+  removes only vim-plug-managed plugins that are no longer selected; confirm
+  its interactive removal list before proceeding.
+- Restart Vim completely before investigating stale diagnostic or AI mappings.
+- Rollback by copying your previous backup files back into place, restarting
+  Vim, and re-running `:PlugStatus`. Avoid automatically downgrading a working
+  language-server installation just because the Vimrc was rolled back.
+
+## 19. Validation and release policy
+
+For **2.7.2** the archive includes the latest versions of files only:
+
+- one standalone Vimrc and one before-local template for each of the four OSes;
+- two maintained LSP manager scripts (native Linux/macOS and MobaXterm);
+- current auxiliary scripts in `scripts/`;
+- current pinned LSP metadata and npm seed under `tools/lsp/`;
+- README, maintenance document and release SHA256SUMS in the archive root.
+
+No old `ddc`, obsolete manager, historical diff or duplicate release snapshots.
+The release was syntax/source-tested on a Linux Vim 9.1 host with temporary
+plugin stubs for all four profiles, each under new-default, old-plugin and
+optional-language scenarios. macOS, WSL2 and MobaXterm profiles were simulated for source
+parsing and option assertions; **native end-to-end installations on those
+operating systems have not been executed in this build environment**.
+
+To verify the completed tar.gz after download:
+
+```bash
+sha256sum -c vim-2.7.2.tar.gz.sha256
+tar -tzf vim-2.7.2.tar.gz
+```
+
+To verify contents after extraction:
+
+```bash
+cd vim-2.7.2-package
+sha256sum -c vim-2.7.2-SHA256SUMS.txt
+```
+
+On macOS without GNU `sha256sum`, use `shasum -a 256` for individual files.
 
 ---
 
-## 25. Package checksum verification
-
-The package includes an internal checksum list:
-
-```text
-vim-2.6.0.11-SHA256SUMS.txt
-```
-
-From the extracted package directory:
-
-```bash
-sha256sum -c vim-2.6.0.11-SHA256SUMS.txt
-```
-
-On macOS, if GNU `sha256sum` is unavailable, verify individual files with:
-
-```bash
-shasum -a 256 <file>
-```
-
----
-
-## 26. Maintainer validation
-
-Before creating a new release, at minimum run:
-
-```bash
-bash -n tools/lsp/lsp-manager-linux-macos.sh
-bash -n tools/lsp/lsp-manager-mobaxterm.sh
-bash -n scripts/install-vim-ai-linux-1.0.2.sh
-bash -n scripts/install-vim-copilot-macos-1.0.1.sh
-```
-
-Check help/version output:
-
-```bash
-tools/lsp/lsp-manager-linux-macos.sh --help
-tools/lsp/lsp-manager-mobaxterm.sh --help
-```
-
-Check the package for obsolete content:
-
-```bash
-find . -iname '*ddc*' -o -iname '*.diff'
-```
-
-The result should be empty.
-
-Verify there is no old combined manager:
-
-```bash
-find tools/lsp -maxdepth 1 -type f -name 'lsp-manager.sh'
-```
-
-The result should be empty.
-
----
-
-## 27. Release packaging policy
-
-Future release archives should continue to follow these rules:
-
-- include only the latest version of each file;
-- do not include ddc versions/files;
-- do not include historical diff files;
-- do not include old release snapshots;
-- keep scripts under `scripts/`;
-- keep language-server tooling under `tools/lsp/`;
-- keep Vimrc files and Markdown documentation at the archive root;
-- provide separate Linux/macOS and MobaXterm LSP managers;
-- retain checksum verification for downloaded runtimes and native binaries.
-
+**Maintenance principle:** keep platform differences entirely within the
+respective platform Vimrc and local template. Never bring back a mixed Linux /
+macOS / MobaXterm / WSL2 single Vimrc or duplicate old files in the tarball.

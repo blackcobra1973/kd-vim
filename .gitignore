@@ -4,6 +4,7 @@
 .vim/
 .vimrc
 .vimrc.*
+vimrc.before.local
 bundle
 vimrc
 autoload

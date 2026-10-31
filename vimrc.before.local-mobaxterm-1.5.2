@@ -1,0 +1,35 @@
+" vimrc.before.local (target: mobaxterm)
+" Configuration version: 1.5.2 | Package version: 2.7.2
+" Copy to ~/.vimrc.before.local on the matching platform.
+" The main Vimrc sources this file BEFORE declaring plugins.
+" LSP manager: tools/lsp/lsp-manager-mobaxterm.sh
+" AI: this MobaXterm profile does not support AI integration (the flags remain off).
+
+let g:kd_bundle_groups = ['general', 'lsp', 'ale', 'programming', 'markdown', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm']
+
+" AI feature switches. Set to v:true (or 1) to opt in; v:false (or 0) is off.
+" These flags are authoritative even when old AI names remain in bundle groups.
+let g:kd_enable_copilot = v:false  " unsupported in MobaXterm Vimrc
+let g:kd_enable_codex = v:false    " unsupported in MobaXterm Vimrc
+
+" Optional override of LSP manager installation root:
+" let g:kd_lsp_home = expand('~/.local/share/vim-lsp')
+" Optional private CA bundle for vim-plug bootstrap:
+" let g:kd_curl_ca_bundle = expand('~/.config/certs/internal-ca.pem')
+" To refuse insecure fallback at vim-plug bootstrap:
+" let g:kd_curl_allow_insecure_fallback = 0
+
+" Lightline is the only statusline. Keep grb256 as the preferred colorscheme.
+let g:kd_use_lightline = 1
+let g:kd_colorscheme = 'grb256'
+
+" Optional alternative providers (set ONE provider per feature):
+" let g:kd_explorer = 'nerdtree'              " default: fern
+" let g:kd_motion = 'easymotion'             " default: stargate
+" let g:kd_selection = 'wildfire'            " default: expand-region
+" let g:kd_indent_display = 'vim-indent-guides' " default: native
+
+" Optional groups: rails, haml, rust, cucumber, javascript_less,
+" javascript_jst, javascript_coffee, vim_over, gist, writing, extra,
+" colorschemes, php, go, scala, haskell, puppet, elixir, asciidoc.
+" Add group names to g:kd_bundle_groups to opt in.
