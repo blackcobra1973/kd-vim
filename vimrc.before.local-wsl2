@@ -1,5 +1,5 @@
 " vimrc.before.local (target: wsl2)
-" Configuration version: 1.5.2 | Package version: 2.7.2
+" Configuration version: 1.5.2.1 | Package version: 2.7.2.1
 " Copy to ~/.vimrc.before.local on the matching platform.
 " The main Vimrc sources this file BEFORE declaring plugins.
 " LSP manager: tools/lsp/lsp-manager-linux-macos.sh
@@ -33,3 +33,11 @@ let g:kd_colorscheme = 'grb256'
 " javascript_jst, javascript_coffee, vim_over, gist, writing, extra,
 " colorschemes, php, go, scala, haskell, puppet, elixir, asciidoc.
 " Add group names to g:kd_bundle_groups to opt in.
+
+" Whitespace cleanup: removes trailing spaces/tabs and extra blank EOF lines.
+" Automatic on-save cleanup applies to YAML, Ansible YAML and code files;
+" Markdown, patch/diff and prose filetypes are deliberately excluded.
+" Disable automatic cleanup when your project needs trailing whitespace:
+" let g:kd_keep_trailing_whitespace = 1
+" To clean the current buffer manually at any time, use :FixWhitespace.
+" Invisible trailing spaces are NOT displayed as dots; literal '.' stays a dot.

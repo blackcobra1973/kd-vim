@@ -1,16 +1,16 @@
-" vimrc.before.local (target: mobaxterm)
-" Configuration version: 1.5.2 | Package version: 2.7.2
+" vimrc.before.local (target: linux)
+" Configuration version: 1.5.2.1 | Package version: 2.7.2.1
 " Copy to ~/.vimrc.before.local on the matching platform.
 " The main Vimrc sources this file BEFORE declaring plugins.
-" LSP manager: tools/lsp/lsp-manager-mobaxterm.sh
-" AI: this MobaXterm profile does not support AI integration (the flags remain off).
+" LSP manager: tools/lsp/lsp-manager-linux-macos.sh
+" AI: Copilot and Codex supported as separate opt-in features; both off by default.
 
 let g:kd_bundle_groups = ['general', 'lsp', 'ale', 'programming', 'markdown', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm']
 
 " AI feature switches. Set to v:true (or 1) to opt in; v:false (or 0) is off.
 " These flags are authoritative even when old AI names remain in bundle groups.
-let g:kd_enable_copilot = v:false  " unsupported in MobaXterm Vimrc
-let g:kd_enable_codex = v:false    " unsupported in MobaXterm Vimrc
+let g:kd_enable_copilot = v:false
+let g:kd_enable_codex = v:false
 
 " Optional override of LSP manager installation root:
 " let g:kd_lsp_home = expand('~/.local/share/vim-lsp')
@@ -33,3 +33,11 @@ let g:kd_colorscheme = 'grb256'
 " javascript_jst, javascript_coffee, vim_over, gist, writing, extra,
 " colorschemes, php, go, scala, haskell, puppet, elixir, asciidoc.
 " Add group names to g:kd_bundle_groups to opt in.
+
+" Whitespace cleanup: removes trailing spaces/tabs and extra blank EOF lines.
+" Automatic on-save cleanup applies to YAML, Ansible YAML and code files;
+" Markdown, patch/diff and prose filetypes are deliberately excluded.
+" Disable automatic cleanup when your project needs trailing whitespace:
+" let g:kd_keep_trailing_whitespace = 1
+" To clean the current buffer manually at any time, use :FixWhitespace.
+" Invisible trailing spaces are NOT displayed as dots; literal '.' stays a dot.

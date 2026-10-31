@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       1.5.2 - 2026-10-29 (package 2.7.2, macOS)
+"       1.5.2.1 - 2026-10-31 (package 2.7.2.1, macOS)
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -35,10 +35,10 @@
     echoerr 'The macOS Vimrc needs native macOS Vim.'
     finish
   endif
-  let g:kd_config_version = '1.5.2'
-  let g:kd_package_version = '2.7.2'
+  let g:kd_config_version = '1.5.2.1'
+  let g:kd_package_version = '2.7.2.1'
 
-  " Vim 1.5.2 completion/LSP baseline:
+  " Vim 1.5.2.1 completion/LSP baseline:
   "   - yegappan/lsp requires Vim 9.0 or newer.
   "   - The LSP client is pure Vim9 script: Deno/denops are no longer required.
   "   - Language servers are installed independently by tools/lsp/lsp-manager-linux-macos.sh.
@@ -756,13 +756,14 @@ endif
   "set whichwrap+=<,>,h,l          " Backspace and cursor keys wrap too
   set scrolljump=5                " Lines to scroll when cursor leaves screen
   set scrolloff=7                 " Minimum lines to keep above and below cursor
-  " Native Vim whitespace visualization avoids conceal and editor popups.
+  " Show tabs and special characters without displaying trailing-space dots.
+  " Actual trailing spaces are cleaned on save by FixWhitespace for code files.
   " Space-based indentation guides require the optional legacy plugin.
   set list
   if g:kd_indent_display ==# 'native'
-    set listchars=tab:>-,trail:.,extends:>,precedes:<,nbsp:+
+    set listchars=tab:>-,extends:>,precedes:<,nbsp:+
   else
-    set listchars=tab:›\ ,extends:#,nbsp:.
+    set listchars=tab:›\ ,extends:#,nbsp:+
   endif
   "set scrolloff=10                       " Set 10 lines to the cursor
   set cmdheight=2                 " Height of the command bar
@@ -818,11 +819,10 @@ endif
   set pastetoggle=<F2>            " pastetoggle (sane indentation on pastes)
   "set comments=sl:/*,mb:*,elx:*/  " auto format comment blocks
 
-  " Remove trailing whitespaces and ^M chars
-  " To disable the stripping of whitespace, add the following to your
-  " .vimrc.before.local file:
-  "   let g:kd_keep_trailing_whitespace = 1
-  autocmd FileType c,cpp,java,go,php,javascript,puppet,python,rust,twig,xml,yml,perl,sql autocmd BufWritePre <buffer> if !exists('g:kd_keep_trailing_whitespace') | call StripTrailingWhitespace() | endif
+  " Automatic whitespace cleanup is registered below, after FixWhitespace().
+  " Covers ordinary YAML and Ansible YAML in addition to supported code files.
+  " Disable auto cleanup with g:kd_keep_trailing_whitespace = 1.
+  " :FixWhitespace always remains available manually, regardless of this flag.
   "autocmd FileType go autocmd BufWritePre <buffer> Fmt
   autocmd BufNewFile,BufRead *.html.twig set filetype=html.twig
   autocmd FileType haskell,puppet,ruby,yml setlocal expandtab shiftwidth=2 softtabstop=2
@@ -1657,7 +1657,7 @@ endif
       " macOS AI health.
       if count(g:kd_bundle_groups, 'github_copilot') 
         function! s:KDAIStatus() abort
-          echomsg 'Vim AI 1.5.2 status (macOS):'
+          echomsg 'Vim AI 1.5.2.1 status (macOS):'
           echomsg '  Copilot plugin: ' . (isdirectory(g:kd_plugin_directory . '/copilot.vim/') ? 'installed' : 'missing')
           echomsg '  Node.js: ' . (executable('node') ? substitute(system('node --version'), '\n\+$', '', '') : 'NOT FOUND')
           echomsg '  Copilot command: ' . (exists(':Copilot') == 2 ? 'available' : 'unavailable')
@@ -1867,19 +1867,48 @@ endif
     " }
 
 
-    " Strip whitespace {
-    function! StripTrailingWhitespace()
-        " Preparation: save last search, and cursor position.
-        let _s=@/
-        let l = line(".")
-        let c = col(".")
-        " do the business:
-        %s/\s\+$//e
-        " clean up: restore previous search history, and cursor position
-        let @/=_s
-        call cursor(l, c)
+    " Whitespace cleanup: only remove unwanted trailing spaces/tabs and
+    " extra empty lines at EOF. Keep indentation and internal spaces intact.
+    " FixWhitespace is callable manually with :FixWhitespace; on-save cleanup
+    " only runs for supported code/config filetypes (not Markdown or patches).
+    function! FixWhitespace() abort
+      if &buftype !=# '' || !&modifiable || &readonly
+        return
+      endif
+      let l:view = winsaveview()
+      try
+        silent! keepjumps keeppatterns %s/[ \t]\+$//e
+        while line('$') > 1 && getline('$') ==# ''
+          silent keepjumps $delete _
+        endwhile
+      finally
+        call winrestview(l:view)
+      endtry
     endfunction
-    " }
+    command! -bar FixWhitespace call FixWhitespace()
+    " Preserve old custom calls/mappings for backwards compatibility.
+    function! StripTrailingWhitespace() abort
+      call FixWhitespace()
+    endfunction
+
+    function! s:KDAutoFixWhitespace() abort
+      if get(g:, 'kd_keep_trailing_whitespace', 0)
+        return
+      endif
+      " A compound filetype such as yaml.ansible counts as yaml.
+      let l:ft = get(split(&filetype, '\.'), 0, '')
+      if index(['c', 'cpp', 'java', 'go', 'php', 'javascript', 'typescript',
+            \ 'puppet', 'python', 'rust', 'twig', 'xml', 'yaml', 'yml',
+            \ 'ansible', 'perl', 'sql', 'sh', 'bash', 'zsh', 'vim',
+            \ 'json', 'jsonc', 'dockerfile', 'terraform', 'hcl', 'toml',
+            \ 'css', 'scss', 'html'], l:ft) >= 0
+        call FixWhitespace()
+      endif
+    endfunction
+    augroup kd_whitespace_cleanup
+      autocmd!
+      autocmd BufWritePre * call <SID>KDAutoFixWhitespace()
+    augroup END
 
     " Shell command {
     function! s:RunShellCommand(cmdline)
