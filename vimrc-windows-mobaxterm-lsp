@@ -3,7 +3,7 @@
 "       Kurt Dillen
 "
 " Version:
-"       2.6.0.11 - 2026-08-24 (Windows/MobaXterm)
+"       1.5.2 - 2026-10-29 (package 2.7.2, MobaXterm)
 "
 " Awesome_version:
 "       Get this config, nice color schemes and lots of plugins!
@@ -45,12 +45,14 @@
   endfunction
 
   if !MOBAXTERM()
-    echohl WarningMsg
-    echomsg 'Warning: this vimrc is intended for MobaXterm terminal Vim on Windows.'
-    echohl None
+    echoerr 'This Vimrc requires MobaXterm terminal Vim.'
+    finish
   endif
 
-  " Vim 2.6 completion/LSP baseline:
+  let g:kd_config_version = '1.5.2'
+  let g:kd_package_version = '2.7.2'
+
+  " Vim 1.5.2 completion/LSP baseline:
   "   - yegappan/lsp requires Vim 9.0 or newer.
   "   - The LSP client is pure Vim9 script: Deno/denops are no longer required.
   "   - Language servers are installed independently by tools/lsp/lsp-manager-mobaxterm.sh.
@@ -217,9 +219,6 @@
   " Disable whitespace stripping
   "   let g:kd_keep_trailing_whitespace = 1
 
-  " Enable powerline symbols
-  "   let g:airline_powerline_fonts = 1
-
   " vim files directory
   "   let g:kd_consolidated_directory = <full path to desired directory>
   "   eg: let g:kd_consolidated_directory = $HOME . '/.vim/'
@@ -233,13 +232,6 @@
 
   " Don't turn conceallevel or concealcursor
   "   let g:kd_no_conceal = 1
-
-  " For some colorschemes, autocolor will not work (eg: 'desert', 'ir_black')
-  " Indent guides will attempt to set your colors smartly. If you
-  " want to control them yourself, do it here.
-  "   let g:indent_guides_auto_colors = 0
-  "   autocmd VimEnter,Colorscheme * :highlight IndentGuidesOdd  guibg=#212121 ctermbg=233
-  "   autocmd VimEnter,Colorscheme * :highlight IndentGuidesEven guibg=#404040 ctermbg=234
 
   " Leave the default font and size in GVim
   " To set your own font, do it from ~/.vimrc.local
@@ -263,15 +255,29 @@
   endif
 " }
 
-" 2.6 AI platform boundary {
-  " AI is intentionally excluded from the Windows/MobaXterm variant.  Keep
-  " yegappan/lsp and native completion, but never load Copilot, Codex integration,
-  " ghost text, or AI-specific dependencies even when a shared before.local
-  " contains the Linux AI bundle names.
-  if exists('g:kd_bundle_groups')
-    call filter(g:kd_bundle_groups, "index(['github_copilot', 'codex'], v:val) < 0")
+" AI feature switches: read before plugin declaration and take precedence over
+" legacy 'github_copilot' and 'codex' bundle names. Disabled means the plugin,
+" integrations and mappings are not loaded, even if old bundle names remain.
+if !exists('g:kd_enable_copilot') | let g:kd_enable_copilot = v:false | endif
+if !exists('g:kd_enable_codex') | let g:kd_enable_codex = v:false | endif
+for s:kd_ai_flag in ['kd_enable_copilot', 'kd_enable_codex']
+  let s:kd_ai_value = get(g:, s:kd_ai_flag)
+  if type(s:kd_ai_value) != v:t_bool &&
+        \ (type(s:kd_ai_value) != v:t_number || index([0, 1], s:kd_ai_value) < 0)
+    throw 'AI flag ' . s:kd_ai_flag . ' must be v:true, v:false, 1 or 0'
   endif
-" }
+endfor
+unlet s:kd_ai_flag s:kd_ai_value
+
+" MobaXterm deliberately does not declare an AI plugin because its
+" Windows Node/npm bridge is intended for LSP servers, not Copilot or Codex.
+" The booleans remain visible in its local template, but enabling AI is not
+" supported here; make the limitation explicit instead of failing silently.
+if g:kd_enable_copilot || g:kd_enable_codex
+  echohl WarningMsg
+  echomsg 'MobaXterm: AI plugins are not supported by this Vimrc; the AI flags have no effect.'
+  echohl None
+endif
 
 " 2.4 migration guard: Syntastic was replaced by ALE.  If an undeclared old
 " Syntastic directory is still present on runtimepath (for example in a Vim
@@ -390,265 +396,208 @@ let g:syntastic_check_on_wq = 0
   call plug#begin(g:kd_plugin_directory)
 " }
 
-" => vim-plug Plugins
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Plugins {
-  " Dependencies are declared with the feature that needs them.
+" => Plugin bundles (Vim9, vim-plug)
+" Every general bundle uses Fern, Stargate, Expand Region and native whitespace
+" indication by default. Switch one provider at a time in vimrc.before.local.
+"    g:kd_explorer       = 'fern'       or 'nerdtree'
+"    g:kd_motion         = 'stargate'   or 'easymotion'
+"    g:kd_selection      = 'expand-region' or 'wildfire'
+"    g:kd_indent_display = 'native'     or 'vim-indent-guides'
+" Invalid selections stop startup with an explanatory error.
+" `general` is a prerequisite for all four alternatives and for Lightline.
+if !exists('g:kd_explorer') | let g:kd_explorer = 'fern' | endif
+if !exists('g:kd_motion') | let g:kd_motion = 'stargate' | endif
+if !exists('g:kd_selection') | let g:kd_selection = 'expand-region' | endif
+if !exists('g:kd_indent_display') | let g:kd_indent_display = 'native' | endif
+for s:kd_pair in [
+      \ ['kd_explorer', ['fern', 'nerdtree']],
+      \ ['kd_motion', ['stargate', 'easymotion']],
+      \ ['kd_selection', ['expand-region', 'wildfire']],
+      \ ['kd_indent_display', ['native', 'vim-indent-guides']]
+      \ ]
+  if index(s:kd_pair[1], get(g:, s:kd_pair[0])) < 0
+    throw 'Invalid ' . s:kd_pair[0] . ': ' . string(get(g:, s:kd_pair[0]))
+  endif
+endfor
+unlet s:kd_pair
 
-  " In your .vimrc.before.local file
-  " list only the plugin groups you will use
-  if !exists('g:kd_bundle_groups')
-      let g:kd_bundle_groups = ['general', 'lsp', 'ale', 'programming', 'markdown', 'ruby', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm', 'misc',]
+" Extra bundles can be added in vimrc.before.local, without editing these files.
+" No plugin snapshots or commit pins are enabled in this release.
+if !exists('g:kd_bundle_groups')
+  let g:kd_bundle_groups = ['general', 'lsp', 'ale', 'programming', 'markdown', 'ansible', 'python', 'docker', 'javascript', 'html', 'terraform', 'helm']
+endif
 
+" MobaXterm: always remove AI groups, regardless of legacy settings.
+call filter(g:kd_bundle_groups, "index(['github_copilot', 'codex'], v:val) < 0")
+
+if !exists('g:override_kd_bundles')
+  if index(g:kd_bundle_groups, 'general') >= 0
+    if g:kd_explorer ==# 'fern'
+      Plug 'lambdalisue/vim-fern'
+    else
+      Plug 'preservim/nerdtree'
+    endif
+    Plug 'tpope/vim-surround'
+    Plug 'tpope/vim-repeat'
+    Plug 'cohama/lexima.vim'
+    Plug 'junegunn/fzf'
+    Plug 'junegunn/fzf.vim'
+    Plug 'mg979/vim-visual-multi', { 'branch': 'master' }
+    if g:kd_motion ==# 'stargate'
+      Plug 'monkoose/vim9-stargate'
+    else
+      Plug 'easymotion/vim-easymotion'
+    endif
+    Plug 'mbbill/undotree'
+    if g:kd_indent_display ==# 'vim-indent-guides'
+      Plug 'preservim/vim-indent-guides'
+    endif
+    Plug 'airblade/vim-gitgutter'
+    Plug 'tpope/vim-sleuth'
+    Plug 'andymass/vim-matchup'
+    Plug 'itchyny/lightline.vim'
+    Plug 'rhysd/conflict-marker.vim'
+    if g:kd_selection ==# 'expand-region'
+      Plug 'terryma/vim-expand-region'
+    else
+      " Archived Wildfire remains available only by explicit choice.
+      Plug 'gcmt/wildfire.vim'
+    endif
+    Plug 'fionn/grb256'
+    Plug 'blackcobra1973/kd-vim-colors'
+    Plug 'noahfrederick/vim-hemisu'
+    Plug 'sjl/badwolf'
   endif
 
-  " To override all the included plugins, add the following to your
-  " .vimrc.before.local file:
-  "   let g:override_kd_bundles = 1
-  if !exists('g:override_kd_bundles')
-
-    " General {
-      if count(g:kd_bundle_groups, 'general')
-        Plug 'preservim/nerdtree'
-        Plug 'tpope/vim-surround'
-        Plug 'tpope/vim-repeat'
-        Plug 'cohama/lexima.vim'
-        Plug 'junegunn/fzf'
-        Plug 'junegunn/fzf.vim'
-        Plug 'mg979/vim-visual-multi', { 'branch': 'master' }
-        Plug 'easymotion/vim-easymotion'
-        Plug 'mbbill/undotree'
-        Plug 'preservim/vim-indent-guides'
-        Plug 'airblade/vim-gitgutter'
-        Plug 'tpope/vim-sleuth'
-        Plug 'andymass/vim-matchup'
-        if (has('python') || has('python3')) && exists('g:kd_use_powerline')
-          Plug 'powerline/powerline', { 'rtp': 'powerline/bindings/vim' }
-          Plug 'ryanoasis/vim-devicons'
-        elseif exists('g:kd_use_lightline')
-          Plug 'itchyny/lightline.vim'
-        elseif exists('g:kd_use_agnoster')
-          Plug 'i5ar/vim-agnoster-statusline'
-        else
-          Plug 'vim-airline/vim-airline'
-          Plug 'vim-airline/vim-airline-themes'
-        endif
-        Plug 'rhysd/conflict-marker.vim'
-        Plug 'osyo-manga/vim-over'
-        Plug 'gcmt/wildfire.vim'
-        Plug 'fionn/grb256'
-        Plug 'blackcobra1973/kd-vim-colors'
-        Plug 'noahfrederick/vim-hemisu'
-        Plug 'sjl/badwolf'
-      endif
-    " }
-
-    " Extra General {
-      if count(g:kd_bundle_groups, 'extra')
-        Plug 'vim-scripts/sessionman.vim'
-        Plug 'bling/vim-bufferline'
-        Plug 'tpope/vim-abolish'
-        Plug 'kana/vim-textobj-user'
-        Plug 'kana/vim-textobj-indent'
-      endif
-    " }
-
-    " Extra Color schemes {
-      if count(g:kd_bundle_groups, 'colorschemes')
-        Plug 'altercation/vim-colors-solarized'
-        Plug 'spf13/vim-colors'
-        Plug 'flazz/vim-colorschemes'
-        Plug 'romainl/apprentice'
-        Plug 'lokaltog/vim-distinguished'
-        Plug 'tpope/vim-vividchalk'
-      endif
-    " }
-
-    " Writing {
-      if count(g:kd_bundle_groups, 'writing')
-        Plug 'reedes/vim-litecorrect'
-        Plug 'reedes/vim-textobj-sentence'
-        Plug 'reedes/vim-textobj-quote'
-        Plug 'reedes/vim-wordy'
-      endif
-    " }
-
-    " General Programming {
-      if count(g:kd_bundle_groups, 'programming')
-        Plug 'tpope/vim-fugitive'
-        Plug 'junegunn/gv.vim'
-        Plug 'tpope/vim-commentary'
-        Plug 'godlygeek/tabular'
-        Plug 'luochen1990/rainbow'
-        if executable('ctags')
-          Plug 'preservim/tagbar'
-        endif
-      endif
-    " }
-
-    " GitHub Gist (optional) {
-      if count(g:kd_bundle_groups, 'gist')
-        Plug 'mattn/webapi-vim'
-        Plug 'mattn/gist-vim'
-      endif
-    " }
-
-    " Language Server Protocol (Vim9-native) {
-      if count(g:kd_bundle_groups, 'lsp') && s:KDHasSupportedVimForLsp()
-        Plug 'yegappan/lsp'
-      endif
-    " }
-
-    " Asynchronous linting/fixing {
-      if count(g:kd_bundle_groups, 'ale')
-        Plug 'dense-analysis/ale'
-      endif
-    " }
-
-    " Snippets & optional alternative completion engines {
-      if count(g:kd_bundle_groups, 'snipmate') || count(g:kd_bundle_groups, 'youcompleteme')
-        Plug 'honza/vim-snippets'
-      endif
-
-      if count(g:kd_bundle_groups, 'snipmate')
-        Plug 'MarcWeber/vim-addon-mw-utils'
-        Plug 'tomtom/tlib_vim'
-        Plug 'garbas/vim-snipmate'
-        if filereadable(g:kd_plugin_directory . '/vim-snippets/snippets/support_functions.vim')
-          execute 'source ' . fnameescape(g:kd_plugin_directory . '/vim-snippets/snippets/support_functions.vim')
-        endif
-      elseif count(g:kd_bundle_groups, 'youcompleteme')
-        Plug 'ycm-core/YouCompleteMe'
-        Plug 'SirVer/ultisnips'
-      endif
-    " }
-
-    " PHP {
-      if count(g:kd_bundle_groups, 'php')
-        Plug 'spf13/PIV'
-        Plug 'arnaud-lb/vim-php-namespace'
-        Plug 'beyondwords/vim-twig'
-      endif
-    " }
-
-    " Python {
-      if count(g:kd_bundle_groups, 'python')
-        Plug 'vim-python/python-syntax'
-      endif
-    " }
-
-    " Javascript {
-      if count(g:kd_bundle_groups, 'javascript')
-        Plug 'groenewege/vim-less'
-        Plug 'pangloss/vim-javascript'
-        Plug 'briancollins/vim-jst'
-        Plug 'kchmck/vim-coffee-script'
-      endif
-    " }
-
-    " Scala {
-      if count(g:kd_bundle_groups, 'scala')
-        Plug 'derekwyatt/vim-scala'
-        Plug 'derekwyatt/vim-sbt'
-        Plug 'vim-scripts/xptemplate'
-      endif
-    " }
-
-    " Haskell {
-      if count(g:kd_bundle_groups, 'haskell')
-        " Syntax/indentation only; language intelligence is provided by
-        " haskell-language-server through the external lsp-manager or system PATH.
-        Plug 'neovimhaskell/haskell-vim'
-      endif
-    " }
-
-    " HTML {
-      if count(g:kd_bundle_groups, 'html')
-        Plug 'alvan/vim-closetag'
-        Plug 'hail2u/vim-css3-syntax'
-        Plug 'ap/vim-css-color'
-        Plug 'tpope/vim-haml'
-        Plug 'mattn/emmet-vim'
-      endif
-    " }
-
-    " Ruby {
-      if count(g:kd_bundle_groups, 'ruby')
-        Plug 'tpope/vim-rails'
-        let g:rubycomplete_buffer_loading = 1
-        "let g:rubycomplete_classes_in_global = 1
-        "let g:rubycomplete_rails = 1
-      endif
-    " }
-
-    " Ansible {
-      if count(g:kd_bundle_groups, 'ansible')
-        Plug 'pearofducks/ansible-vim'
-      endif
-    " }
-
-    " Puppet {
-      if count(g:kd_bundle_groups, 'puppet')
-        Plug 'rodjek/vim-puppet'
-      endif
-    " }
-
-    " Go Lang {
-      if count(g:kd_bundle_groups, 'go')
-        "Plug 'Blackrush/vim-gocode'
-        Plug 'fatih/vim-go'
-      endif
-    " }
-
-
-    " Elixir {
-      if count(g:kd_bundle_groups, 'elixir')
-        Plug 'elixir-lang/vim-elixir'
-        Plug 'carlosgaldino/elixir-snippets'
-        Plug 'mattreduce/vim-mix'
-      endif
-    " }
-
-    " Docker {
-      " Modern Vim ships Dockerfile/Containerfile runtime support.
-      " The 'docker' group is retained for defaults, LSP and ALE selection.
-    " }
-
-    " Terraform {
-      if count(g:kd_bundle_groups, 'terraform')
-        Plug 'hashivim/vim-terraform'
-      endif
-    " }
-
-    " Helm {
-      if count(g:kd_bundle_groups, 'helm')
-        Plug 'towolf/vim-helm'
-      endif
-    " }
-
-    " Asciidoc {
-      if count(g:kd_bundle_groups, 'asciidoc')
-        Plug 'blackcobra1973/asciidoc-vim'
-      endif
-    " }
-
-    " Markdown {
-      if count(g:kd_bundle_groups, 'markdown')
-        " preservim/vim-markdown expects Tabular to be available first.
-        Plug 'preservim/vim-markdown'
-      endif
-    " }
-
-    " Misc {
-      if count(g:kd_bundle_groups, 'misc')
-        Plug 'rust-lang/rust.vim'
-        Plug 'tpope/vim-cucumber'
-        Plug 'quentindecock/vim-cucumber-align-pipes'
-      endif
-    " }
-
+  if index(g:kd_bundle_groups, 'vim_over') >= 0
+    Plug 'osyo-manga/vim-over'
   endif
-" }
+
+  if index(g:kd_bundle_groups, 'extra') >= 0
+    Plug 'vim-scripts/sessionman.vim'
+    Plug 'bling/vim-bufferline'
+    Plug 'tpope/vim-abolish'
+    Plug 'kana/vim-textobj-user'
+    Plug 'kana/vim-textobj-indent'
+  endif
+
+  if index(g:kd_bundle_groups, 'colorschemes') >= 0
+    Plug 'altercation/vim-colors-solarized'
+    Plug 'spf13/vim-colors'
+    Plug 'flazz/vim-colorschemes'
+    Plug 'romainl/apprentice'
+    Plug 'lokaltog/vim-distinguished'
+    Plug 'tpope/vim-vividchalk'
+  endif
+
+  if index(g:kd_bundle_groups, 'writing') >= 0
+    Plug 'reedes/vim-litecorrect'
+    Plug 'reedes/vim-textobj-sentence'
+    Plug 'reedes/vim-textobj-quote'
+    Plug 'reedes/vim-wordy'
+  endif
+
+  if index(g:kd_bundle_groups, 'programming') >= 0
+    Plug 'tpope/vim-fugitive'
+    Plug 'junegunn/gv.vim'
+    Plug 'tpope/vim-commentary'
+    Plug 'godlygeek/tabular'
+    Plug 'luochen1990/rainbow'
+    if executable('ctags')
+      Plug 'preservim/tagbar'
+    endif
+  elseif index(g:kd_bundle_groups, 'markdown') >= 0
+    " vim-markdown needs Tabular even without the programming bundle.
+    Plug 'godlygeek/tabular'
+  endif
+
+  if index(g:kd_bundle_groups, 'gist') >= 0
+    Plug 'mattn/webapi-vim'
+    Plug 'mattn/gist-vim'
+  endif
+  if index(g:kd_bundle_groups, 'lsp') >= 0 && s:KDHasSupportedVimForLsp()
+    Plug 'yegappan/lsp'
+  endif
+  if index(g:kd_bundle_groups, 'ale') >= 0
+    Plug 'dense-analysis/ale'
+  endif
+
+  " Complete-language helper bundles, normally OFF.
+  if index(g:kd_bundle_groups, 'php') >= 0
+    Plug 'spf13/PIV'
+    Plug 'arnaud-lb/vim-php-namespace'
+    Plug 'beyondwords/vim-twig'
+  endif
+  if index(g:kd_bundle_groups, 'python') >= 0
+    Plug 'vim-python/python-syntax'
+  endif
+  if index(g:kd_bundle_groups, 'javascript') >= 0
+    Plug 'pangloss/vim-javascript'
+  endif
+  if index(g:kd_bundle_groups, 'javascript_less') >= 0
+    Plug 'groenewege/vim-less'
+  endif
+  if index(g:kd_bundle_groups, 'javascript_jst') >= 0
+    Plug 'briancollins/vim-jst'
+  endif
+  if index(g:kd_bundle_groups, 'javascript_coffee') >= 0
+    Plug 'kchmck/vim-coffee-script'
+  endif
+  if index(g:kd_bundle_groups, 'scala') >= 0
+    Plug 'derekwyatt/vim-scala'
+    Plug 'derekwyatt/vim-sbt'
+    Plug 'vim-scripts/xptemplate'
+  endif
+  if index(g:kd_bundle_groups, 'haskell') >= 0
+    Plug 'neovimhaskell/haskell-vim'
+  endif
+  if index(g:kd_bundle_groups, 'html') >= 0
+    Plug 'alvan/vim-closetag'
+    Plug 'hail2u/vim-css3-syntax'
+    Plug 'ap/vim-css-color'
+    Plug 'mattn/emmet-vim'
+  endif
+  if index(g:kd_bundle_groups, 'haml') >= 0
+    Plug 'tpope/vim-haml'
+  endif
+  if index(g:kd_bundle_groups, 'rails') >= 0
+    Plug 'tpope/vim-rails'
+  endif
+  if index(g:kd_bundle_groups, 'ansible') >= 0
+    Plug 'pearofducks/ansible-vim'
+  endif
+  if index(g:kd_bundle_groups, 'puppet') >= 0
+    Plug 'rodjek/vim-puppet'
+  endif
+  if index(g:kd_bundle_groups, 'go') >= 0
+    Plug 'fatih/vim-go'
+  endif
+  if index(g:kd_bundle_groups, 'elixir') >= 0
+    Plug 'elixir-lang/vim-elixir'
+    Plug 'carlosgaldino/elixir-snippets'
+    Plug 'mattreduce/vim-mix'
+  endif
+  " Docker uses Vim's native syntax and the external Docker LS, not an extra plugin.
+  if index(g:kd_bundle_groups, 'terraform') >= 0
+    Plug 'hashivim/vim-terraform'
+  endif
+  if index(g:kd_bundle_groups, 'helm') >= 0
+    Plug 'towolf/vim-helm'
+  endif
+  if index(g:kd_bundle_groups, 'asciidoc') >= 0
+    Plug 'blackcobra1973/asciidoc-vim'
+  endif
+  if index(g:kd_bundle_groups, 'markdown') >= 0
+    Plug 'preservim/vim-markdown'
+  endif
+  if index(g:kd_bundle_groups, 'rust') >= 0
+    Plug 'rust-lang/rust.vim'
+  endif
+  if index(g:kd_bundle_groups, 'cucumber') >= 0
+    Plug 'tpope/vim-cucumber'
+    Plug 'quentindecock/vim-cucumber-align-pipes'
+  endif
+endif
 
 " Use local plugin config if available {
   let s:kd_plugins_local = expand('~/.vimrc.bundles.local')
@@ -818,7 +767,7 @@ endif
       let g:lightline = {}
     endif
     if !has_key(g:lightline, 'colorscheme')
-      let g:lightline.colorscheme = 'powerline'
+      let g:lightline.colorscheme = 'wombat'
     endif
   endif
 
@@ -871,26 +820,10 @@ endif
   endif
 
 """"""""""""""""""""""""""""""
-" => Vim Status line
-""""""""""""""""""""""""""""""
-  if has('statusline')
-    " Always show the status line
-    " Improved status line: always visible, shows [+] modification, read only
-    " status, git branch, etc.
-    set laststatus=2
+" => Lightline is the only statusline
+" Keep the bar visible; lightline.vim owns the actual format.
+  set laststatus=2
 
-    " Broken down into easily includeable segments
-    set statusline=%<%f\                     " Filename
-    set statusline+=%w%h%m%r                 " Options
-    if isdirectory(g:kd_plugin_directory . '/vim-fugitive')
-      set statusline+=%{fugitive#statusline()} " Git Hotness
-    endif
-    set statusline+=\ [%{&ff}/%Y]            " Filetype
-    set statusline+=\ [%{getcwd()}]          " Current dir
-    set statusline+=%=%-14.(%l,%c%V%)\ %p%%  " Right aligned file nav info
-  endif
-
-  highlight User1 term=inverse,bold cterm=inverse,bold ctermfg=red
 
   set backspace=indent,eol,start  " Backspace for dummies
   "set backspace=eol,start,indent  " Backspace for dummies
@@ -908,9 +841,14 @@ endif
   "set whichwrap+=<,>,h,l          " Backspace and cursor keys wrap too
   set scrolljump=5                " Lines to scroll when cursor leaves screen
   set scrolloff=7                 " Minimum lines to keep above and below cursor
+  " Native Vim whitespace visualization avoids conceal and editor popups.
+  " Space-based indentation guides require the optional legacy plugin.
   set list
-  "set listchars=tab:›\ ,trail:•,extends:#,nbsp:. " Highlight problematic whitespace
-  set listchars=tab:›\ ,extends:#,nbsp:. " Highlight problematic whitespace
+  if g:kd_indent_display ==# 'native'
+    set listchars=tab:>-,trail:.,extends:>,precedes:<,nbsp:+
+  else
+    set listchars=tab:›\ ,extends:#,nbsp:.
+  endif
   "set scrolloff=10                       " Set 10 lines to the cursor
   set cmdheight=2                 " Height of the command bar
   set hidden                      " A buffer becomes hidden when it is abandoned
@@ -975,7 +913,9 @@ endif
   autocmd FileType haskell,puppet,ruby,yml setlocal expandtab shiftwidth=2 softtabstop=2
   " preceding line best in a plugin but here for now.
 
-  autocmd BufNewFile,BufRead *.coffee set filetype=coffee
+  if index(g:kd_bundle_groups, 'javascript_coffee') >= 0
+    autocmd BufNewFile,BufRead *.coffee setfiletype coffee
+  endif
   autocmd BufNewFile,BufRead *.cjs setfiletype javascript
   autocmd BufNewFile,BufRead *.thtml setfiletype php
   autocmd BufNewFile,BufRead *.pl setfiletype prolog
@@ -1333,9 +1273,6 @@ endif
     " }
 
     " Misc {
-        if isdirectory(g:kd_plugin_directory . '/nerdtree/')
-            let g:NERDShutUp=1
-        endif
         let b:match_ignorecase = 1
     " }
 
@@ -1390,33 +1327,48 @@ endif
       endif
     " }
 
-    " SnipMate {
-        " Setting the author var
-        " If forking, please overwrite in your .vimrc.local file
-        let g:snips_author = 'Steve Francia <steve.francia@gmail.com>'
-    " }
-
-    " lexima.vim {
+        " lexima.vim {
       " Default lexima rules cover (), [], {}, quotes and context-aware pairs.
       " Add project-specific rules in ~/.vimrc.local when needed.
     " }
 
-    " Nerd Tree {
-        if isdirectory(g:kd_plugin_directory . '/nerdtree')
-            map <F7>       :NERDTreeToggle<CR>
-            map <leader>nb :NERDTreeFromBookmark
-            map <leader>nf :NERDTreeFind<cr>
-            "map <leader>e :NERDTreeFind<CR>
-            "nmap <leader>nt :NERDTreeFind<CR>
-
-            let NERDTreeShowBookmarks=1
-            "let NERDTreeIgnore=['\.py[cd]$', '\~$', '\.swo$', '\.swp$', '^\.git$', '^\.hg$', '^\.svn$', '\.bzr$']
-            let NERDTreeChDirMode=0
-            let NERDTreeQuitOnOpen=1
-            let NERDTreeMouseMode=2
-            let NERDTreeShowHidden=1
-            let NERDTreeKeepTreeInNewTab=1
+    " File explorer (F7, <leader>nf) {
+      if index(g:kd_bundle_groups, 'general') >= 0
+        if g:kd_explorer ==# 'fern'
+          let g:fern#default_hidden = 1
+          nnoremap <silent> <F7> :Fern . -drawer -toggle -keep<CR>
+          nnoremap <silent> <leader>nf :Fern %:h -drawer -reveal=% -keep<CR>
+          nnoremap <silent> <leader>nb :Fern . -drawer -toggle -keep<CR>
+        else
+          let g:NERDShutUp = 1
+          let NERDTreeShowBookmarks = 1
+          let NERDTreeChDirMode = 0
+          let NERDTreeQuitOnOpen = 1
+          let NERDTreeMouseMode = 2
+          let NERDTreeShowHidden = 1
+          let NERDTreeKeepTreeInNewTab = 1
+          nnoremap <silent> <F7> :NERDTreeToggle<CR>
+          nnoremap <silent> <leader>nf :NERDTreeFind<CR>
+          nnoremap <silent> <leader>nb :NERDTreeFromBookmark<CR>
         endif
+      endif
+    " }
+
+    " Motion and selection (only the selected provider is mapped) {
+      if index(g:kd_bundle_groups, 'general') >= 0
+        if g:kd_motion ==# 'stargate'
+          noremap <silent> <leader>j <Cmd>call stargate#OKvim(1)<CR>
+          noremap <silent> <leader>J <Cmd>call stargate#OKvim(2)<CR>
+        else
+          nmap <silent> <leader>j <Plug>(easymotion-overwin-f)
+          nmap <silent> <leader>J <Plug>(easymotion-overwin-f2)
+        endif
+        if g:kd_selection ==# 'expand-region'
+          nmap <silent> <leader>+ <Plug>(expand_region_expand)
+          xmap <silent> <leader>+ <Plug>(expand_region_expand)
+          xmap <silent> <leader>- <Plug>(expand_region_shrink)
+        endif
+      endif
     " }
 
     " Tabularize {
@@ -1533,24 +1485,8 @@ endif
       endif
     "}
 
-    if count(g:kd_bundle_groups, 'youcompleteme')
-      let g:acp_enableAtStartup = 0
-    endif
-
-    " YouCompleteMe / native omni fallback {
-      if count(g:kd_bundle_groups, 'youcompleteme')
-        let g:ycm_collect_identifiers_from_tags_files = 1
-        let g:UltiSnipsExpandTrigger = '<C-j>'
-        let g:UltiSnipsJumpForwardTrigger = '<C-j>'
-        let g:UltiSnipsJumpBackwardTrigger = '<C-k>'
-        call s:KDEnableLanguageOmniComplete()
-        if !exists('g:kd_no_conceal') && has('conceal')
-          set conceallevel=2 concealcursor=i
-        endif
-        set completeopt-=preview
-      elseif !exists('g:kd_no_omni_complete')
-        " yegappan/lsp provides automatic completion for attached buffers.
-        " Native omnifunc remains available for filetypes without a managed LSP.
+    " Native omni fallback (yegappan/lsp owns LSP completion) {
+      if !exists('g:kd_no_omni_complete')
         call s:KDEnableLanguageOmniComplete()
       endif
     " }
@@ -1793,25 +1729,26 @@ endif
       endif
     " }
 
-    " VIM Indent_Guides {
-        if isdirectory(g:kd_plugin_directory . '/vim-indent-guides/')
-            nmap <silent> <F8> <Plug>IndentGuidesToggle
-            let g:indent_guides_start_level = 2
-            let g:indent_guides_guide_size = 1
-            let g:indent_guides_enable_on_vim_startup = 0
-            let g:indent_guides_auto_colors = 0
-
-            autocmd VimEnter,Colorscheme * :highlight IndentGuidesOdd  ctermbg=black
-            "autocmd VimEnter,Colorscheme * :highlight IndentGuidesOdd  ctermbg=lightgrey
-            autocmd VimEnter,Colorscheme * :highlight IndentGuidesEven ctermbg=darkgrey
-        endif
+    " Optional traditional indentation guides (default uses native listchars) {
+      if index(g:kd_bundle_groups, 'general') >= 0 && g:kd_indent_display ==# 'vim-indent-guides'
+        nnoremap <silent> <F8> :IndentGuidesToggle<CR>
+        let g:indent_guides_start_level = 2
+        let g:indent_guides_guide_size = 1
+        let g:indent_guides_enable_on_vim_startup = 0
+        let g:indent_guides_auto_colors = 0
+        augroup kd_indent_guides_colors
+          autocmd!
+          autocmd VimEnter,ColorScheme * highlight IndentGuidesOdd ctermbg=black
+          autocmd VimEnter,ColorScheme * highlight IndentGuidesEven ctermbg=darkgrey
+        augroup END
+      endif
     " }
 
-    " WildFire {
-      if isdirectory(g:kd_plugin_directory . '/wildfire.vim/')
+    " Optional archived Wildfire selection provider {
+      if index(g:kd_bundle_groups, 'general') >= 0 && g:kd_selection ==# 'wildfire'
         let g:wildfire_objects = {
-          \ "*" : ["i'", 'i"', "i)", "i]", "i}", "ip"],
-          \ "html,xml" : ["at"],
+          \ '*' : ["i'", 'i"', 'i)', 'i]', 'i}', 'ip'],
+          \ 'html,xml' : ['at']
           \ }
       endif
     " }
@@ -1826,12 +1763,12 @@ endif
 
     " }
 
-    " lightline {
+    " Lightline (only statusline) {
         " Set configuration options for lightline plugin.
 
         if isdirectory(g:kd_plugin_directory . '/lightline.vim/')
 
-          let s:kd_lightline_colorscheme = get(g:lightline, 'colorscheme', 'powerline')
+          let s:kd_lightline_colorscheme = get(g:lightline, 'colorscheme', 'wombat')
           let g:lightline = {
                 \ 'colorscheme': s:kd_lightline_colorscheme,
                 \ 'mode_map': { 'c': 'NORMAL' },
@@ -1861,12 +1798,10 @@ endif
           endfunction
 
           function! LightlineFilename()
-            return ('' != LightlineReadonly() ? LightlineReadonly() . ' ' : '') .
-                  \ (&ft == 'vimfiler' ? vimfiler#get_status_string() :
-                  \  &ft == 'unite' ? unite#get_status_string() :
-                  \  &ft == 'vimshell' ? vimshell#get_status_string() :
-                  \ '' != expand('%:t') ? expand('%:t') : '[No Name]') .
-                  \ ('' != LightlineModified() ? ' ' . LightlineModified() : '')
+            let l:name = empty(expand('%:t')) ? '[No Name]' : expand('%:t')
+            return (empty(LightlineReadonly()) ? '' : LightlineReadonly() . ' ')
+                  \ . l:name
+                  \ . (empty(LightlineModified()) ? '' : ' ' . LightlineModified())
           endfunction
 
           function! LightlineFugitive()
@@ -1896,93 +1831,6 @@ endif
         endif
     " }
 
-    " vim-airline {
-        " Set configuration options for the statusline plugin vim-airline.
-        " Use the powerline theme and optionally enable powerline symbols.
-        " To use the symbols , , , , , , and .in the statusline
-        " segments add the following to your .vimrc.before.local file:
-        "   let g:airline_powerline_fonts=1
-        " If the previous symbols do not render for you then install a
-        " powerline enabled font.
-
-        " See `:echo g:airline_theme_map` for some more choices
-        " Default in terminal vim is 'dark'
-        if isdirectory(g:kd_plugin_directory . '/vim-airline/')
-          if !exists('g:airline_theme')
-            "let g:airline_theme = 'solarized'
-            let g:airline_theme='murmur'
-          endif
-
-          let g:airline_detect_modified=1     " enable modified detection
-          let g:airline_detect_paste=1        " enable paste detection
-          let g:airline_detect_iminsert=0     " enable iminsert detection
-          let g:airline_inactive_collapse=1   " determine whether inactive windows should have the left section collapsed to
-                                              " only the filename of that buffer.
-          "let g:airline_powerline_fonts=0     " enable/disable usage of patched powerline font symbols
-
-          if !exists('g:airline_symbols')
-            let g:airline_symbols = {}
-          endif
-
-          if !exists('g:airline_powerline_fonts')
-            " Use the default set of separators with a few customizations
-            "let g:airline_left_sep='›'  " Slightly fancier than '>'
-            "let g:airline_left_sep = '»'
-            let g:airline_left_sep = '▶'
-            "let g:airline_right_sep='‹' " Slightly fancier than '<'
-            "let g:airline_right_sep = '«'
-            let g:airline_right_sep = '◀'
-
-            " unicode symbols
-            "let g:airline_symbols.linenr = '␊'
-            "let g:airline_symbols.linenr = '␤'
-            let g:airline_symbols.linenr = '¶'
-            let g:airline_symbols.branch = '⎇'
-            "let g:airline_symbols.paste = 'ρ'
-            let g:airline_symbols.paste = 'Þ'
-            "let g:airline_symbols.paste = '∥'
-            let g:airline_symbols.whitespace = 'Ξ'
-          endif
-
-          let g:airline#extensions#quickfix#quickfix_text = 'Quickfix'      " configure the title text for quickfix buffers
-          let g:airline#extensions#quickfix#location_text = 'Location'      " configure the title text for location list buffers
-          let g:airline#extensions#bufferline#enabled = 1                   " enable/disable bufferline integration
-          let g:airline#extensions#bufferline#overwrite_variables = 1       " determine whether bufferline will overwrite
-                                                                            " customization variables
-          let g:airline#extensions#branch#enabled = 1                       " enable/disable fugitive/lawrencium integration
-          let g:airline#extensions#branch#empty_message = ''                " change the text for when no branch is detected
-          let g:airline#extensions#branch#use_vcscommand = 0                " use vcscommand.vim if available
-          let g:airline#extensions#branch#displayed_head_limit = 10         " truncate long branch names to a fixed length
-          "let g:airline#extensions#branch#format = 0                       " leave branch name unchanged
-                                                                            " default value leaves the name unmodifed
-          "let g:airline#extensions#branch#format = 1                       " show only the branch-name tail
-                                                                            " show 'foo'
-
-          " if a string is provided, it should be the name of a function that
-          " takes a string and returns the desired value
-          let g:airline#extensions#branch#format = 'CustomBranchName'
-          function! CustomBranchName(name)
-            return '[' . a:name . ']'
-          endfunction
-
-          " ALE integrates with Airline automatically when both are loaded.
-
-          " enable/disable tagbar integration
-          let g:airline#extensions#tagbar#enabled = 1
-          " change how tags are displayed (:help tagbar-statusline)
-          "let g:airline#extensions#tagbar#flags = ''  (default)
-          "let g:airline#extensions#tagbar#flags = 'f'
-          "let g:airline#extensions#tagbar#flags = 's'
-          "let g:airline#extensions#tagbar#flags = 'p'
-
-          " enable/disable showing a summary of changed hunks under source control.
-          let g:airline#extensions#hunks#enabled = 1
-          " enable/disable showing only non-zero hunks.
-          let g:airline#extensions#hunks#non_zero_only = 1
-          " set hunk count symbols.
-          let g:airline#extensions#hunks#hunk_symbols = ['+', '~', '-']
-        endif
-    " }
 " }
 
 
@@ -2034,19 +1882,6 @@ endif
     call InitializeDirectories()
     " }
 
-    " Initialize NERDTree as needed {
-    function! NERDTreeInitAsNeeded()
-        redir => bufoutput
-        buffers!
-        redir END
-        let idx = stridx(bufoutput, "NERD_tree")
-        if idx > -1
-            NERDTreeMirror
-            NERDTreeFind
-            wincmd l
-        endif
-    endfunction
-    " }
 
     " Strip whitespace {
     function! StripTrailingWhitespace()

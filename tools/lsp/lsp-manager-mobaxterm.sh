@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.1.2"
+SCRIPT_VERSION="1.1.0"
 SCRIPT_NAME="lsp-manager-mobaxterm.sh"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 VERSIONS_FILE="${SCRIPT_DIR}/versions.conf"
@@ -19,7 +19,6 @@ ALLOW_INSECURE_FALLBACK=1
 CA_BUNDLE=""
 ASSUME_YES=0
 TLS_FALLBACK_WARNED=0
-NPM_TLS_FALLBACK_WARNED=0
 
 [[ -r "${VERSIONS_FILE}" ]] || { echo "ERROR: Missing ${VERSIONS_FILE}" >&2; exit 1; }
 [[ -r "${NPM_PACKAGE_FILE}" ]] || { echo "ERROR: Missing ${NPM_PACKAGE_FILE}" >&2; exit 1; }
@@ -48,9 +47,8 @@ Profiles:
   minimal    npm LSP stack only
 
 This manager is specifically for MobaXterm/Cygwin/MSYS on Windows.
-It executes node.exe and npm.cmd directly through MobaXterm's Windows-command
-bridge. cygpath is used only where a Windows-form path is required by native
-Windows tools or environment variables.
+It executes the private Windows Node distribution through cmd.exe and uses
+cygpath for every native Windows path passed to node/npm.
 USAGE
 }
 
@@ -159,89 +157,25 @@ node_cmd() { [[ -f "${NODE_HOME}/node.exe" ]] && printf '%s\n' "${NODE_HOME}/nod
 npm_cmd() { [[ -f "${NODE_HOME}/npm.cmd" ]] && printf '%s\n' "${NODE_HOME}/npm.cmd" || return 1; }
 
 node_run() {
-  local node
+  local node node_win
   node="$(node_cmd)" || die "Private Node runtime not installed"
-  # MobaXterm can execute Windows PE binaries directly from POSIX paths.
-  # Keeping argv as an array also avoids cmd.exe quoting/escaping problems.
-  "$node" "$@"
-}
-
-npm_exec() {
-  local tls_mode="$1"
-  shift
-  local npm ca_win=""
-  npm="$(npm_cmd)" || die "npm.cmd not found in private Node runtime"
-
-  mkdir -p "${CACHE_DIR}/npm-cache"
-  export npm_config_cache="$(winpath "${CACHE_DIR}/npm-cache")"
-
-  # Node 24.19.0 can use the Windows trusted certificate store. This is the
-  # preferred MobaXterm path because curl/wget and Windows Node do not
-  # necessarily use the same CA store.
-  export NODE_USE_SYSTEM_CA=1
-  export npm_config_strict_ssl=true
-  unset npm_config_cafile NODE_EXTRA_CA_CERTS
-
-  if [[ -n "$CA_BUNDLE" ]]; then
-    [[ -r "$CA_BUNDLE" ]] || die "CA bundle is not readable: ${CA_BUNDLE}"
-    ca_win="$(winpath "$CA_BUNDLE")"
-    export npm_config_cafile="$ca_win"
-    export NODE_EXTRA_CA_CERTS="$ca_win"
-  fi
-
-  if [[ "$tls_mode" == insecure ]]; then
-    export npm_config_strict_ssl=false
-  fi
-
-  "$npm" "$@"
+  node_win="$(winpath "$node")"
+  cmd.exe /d /s /c "\"${node_win}\" $*"
 }
 
 npm_run() {
-  local err rc
-  mkdir -p "$CACHE_DIR"
-  err="$(mktemp "${CACHE_DIR}/npm-stderr.XXXXXX")"
-
-  if npm_exec verified "$@" 2>"$err"; then
-    rm -f "$err"
-    return 0
-  else
-    rc=$?
-  fi
-
-  if grep -Eqi 'SELF_SIGNED_CERT_IN_CHAIN|SELF_SIGNED_CERT|UNABLE_TO_VERIFY_LEAF_SIGNATURE|UNABLE_TO_GET_ISSUER_CERT_LOCALLY|CERT_UNTRUSTED|DEPTH_ZERO_SELF_SIGNED_CERT' "$err"; then
-    if (( STRICT_TLS == 1 || ALLOW_INSECURE_FALLBACK == 0 )); then
-      cat "$err" >&2
-      rm -f "$err"
-      return "$rc"
-    fi
-
-    if (( NPM_TLS_FALLBACK_WARNED == 0 )); then
-      warn "npm TLS verification failed even with the Windows system CA store; retrying npm with strict-ssl=false for this run. Package versions remain pinned and npm lockfile integrity hashes are still enforced. Prefer --ca-bundle FILE when the intercepting CA is available."
-      NPM_TLS_FALLBACK_WARNED=1
-    fi
-    rm -f "$err"
-    npm_exec insecure "$@"
-    return $?
-  fi
-
-  cat "$err" >&2
-  rm -f "$err"
-  return "$rc"
-}
-
-npm_run_in_dir() {
-  local dir="$1" rc oldpwd
-  shift
-  oldpwd="$PWD"
-  cd "$dir"
-  if npm_run "$@"; then
-    cd "$oldpwd"
-    return 0
-  else
-    rc=$?
-    cd "$oldpwd"
-    return "$rc"
-  fi
+  local npm npm_win cwd_win
+  npm="$(npm_cmd)" || die "npm.cmd not found in private Node runtime"
+  npm_win="$(winpath "$npm")"
+  cwd_win="$(winpath "$PWD")"
+  # Do not invoke node.exe with a POSIX npm-cli.js path. Native node.exe would
+  # reinterpret /home/... as C:\\home\\..., which is not MobaXterm's real home.
+  # npm.cmd resolves node.exe and npm-cli.js relative to its own Windows path.
+  (
+    mkdir -p "${CACHE_DIR}/npm-cache"
+    export npm_config_cache="$(winpath "${CACHE_DIR}/npm-cache")"
+    cmd.exe /d /s /c "cd /d \"${cwd_win}\" && call \"${npm_win}\" $*"
+  )
 }
 
 materialize_runtime_lock() {
@@ -250,7 +184,7 @@ materialize_runtime_lock() {
   if grep -q '"kdSeedLock"[[:space:]]*:[[:space:]]*true' "${NPM_DIR}/package-lock.json"; then
     log "Expanding seed npm lockfile into a complete transitive lock"
     rm -f "${NPM_DIR}/package-lock.json"
-    npm_run_in_dir "$NPM_DIR" install --package-lock-only --ignore-scripts --no-audit --no-fund
+    (cd "$NPM_DIR" && npm_run install --package-lock-only --ignore-scripts --no-audit --no-fund)
   fi
 }
 
@@ -261,7 +195,7 @@ create_npm_wrapper() {
 set -euo pipefail
 base="${NPM_DIR}/node_modules/.bin/${wrapper_name}"
 if [[ -f "\${base}.cmd" ]]; then
-  exec "\${base}.cmd" "\$@"
+  exec cmd.exe /d /s /c "\$(cygpath -w "\${base}.cmd")" "\$@"
 fi
 if [[ -x "\$base" ]]; then exec "\$base" "\$@"; fi
 echo "Missing npm language-server executable: ${wrapper_name}" >&2
@@ -273,7 +207,7 @@ WRAP
 install_npm_servers() {
   install_node
   materialize_runtime_lock
-  npm_run_in_dir "$NPM_DIR" ci --ignore-scripts --no-audit --no-fund
+  (cd "$NPM_DIR" && npm_run ci --ignore-scripts --no-audit --no-fund)
   local names=(bash-language-server yaml-language-server ansible-language-server pyright-langserver typescript-language-server vscode-json-language-server vscode-html-language-server vscode-css-language-server vim-language-server)
   local n
   for n in "${names[@]}"; do create_npm_wrapper "$n"; done
@@ -357,76 +291,28 @@ list_servers() {
   done
 }
 
-profile_server_names() {
-  case "$PROFILE" in
-    minimal)
-      printf '%s\n' bash-language-server yaml-language-server ansible-language-server \
-        pyright-langserver typescript-language-server vscode-json-language-server \
-        vscode-html-language-server vscode-css-language-server vim-language-server
-      ;;
-    mobaxterm)
-      printf '%s\n' bash-language-server yaml-language-server ansible-language-server \
-        pyright-langserver typescript-language-server vscode-json-language-server \
-        vscode-html-language-server vscode-css-language-server vim-language-server \
-        terraform-ls helm_ls docker-language-server
-      ;;
-    *) die "Unknown profile: $PROFILE" ;;
-  esac
-}
-
 check_install() {
   platform_detect
-  case "$PROFILE" in mobaxterm|minimal) ;; *) die "Unknown profile: $PROFILE" ;; esac
-
-  local failures=0 node npm node_version npm_version n p
   printf '%s: %s\n' "$SCRIPT_NAME" "$SCRIPT_VERSION"
   printf 'platform:    MobaXterm/Windows %s\n' "$ARCH"
   printf 'profile:     %s\n' "$PROFILE"
   printf 'home:        %s\n' "$LSP_HOME"
-
+  local node node_win
   if node="$(node_cmd 2>/dev/null)"; then
-    node_version="$("$node" --version 2>/dev/null | tr -d '\r\n' || true)"
-    if [[ -n "$node_version" ]]; then
-      printf 'node:        %s (%s)\n' "$node" "$node_version"
-    else
-      printf 'node:        %s (FAILED)\n' "$node"
-      failures=$((failures + 1))
-    fi
+    node_win="$(winpath "$node")"
+    printf 'node:        %s (%s)\n' "$node" "$(cmd.exe /d /s /c "\"${node_win}\" --version" 2>/dev/null | tr -d '\r' || true)"
   else
     printf 'node:        NOT INSTALLED\n'
-    failures=$((failures + 1))
   fi
-
+  local npm npm_win npm_version
   if npm="$(npm_cmd 2>/dev/null)"; then
-    npm_version="$("$npm" --version 2>/dev/null | tr -d '\r\n' || true)"
-    if [[ -n "$npm_version" ]]; then
-      printf 'npm bridge:  %s (%s)\n' "$npm" "$npm_version"
-    else
-      printf 'npm bridge:  %s (FAILED)\n' "$npm"
-      failures=$((failures + 1))
-    fi
+    npm_win="$(winpath "$npm")"
+    npm_version="$(cmd.exe /d /s /c "call \"${npm_win}\" --version" 2>/dev/null | tr -d '\r' || true)"
+    printf 'npm bridge:  %s (%s)\n' "$npm" "${npm_version:-FAILED}"
   else
     printf 'npm bridge:  NOT INSTALLED\n'
-    failures=$((failures + 1))
   fi
-
-  printf '%-30s %s\n' SERVER PATH
-  while IFS= read -r n; do
-    p="${BIN_DIR}/${n}"
-    if [[ -e "$p" ]]; then
-      printf '%-30s %s\n' "$n" "$p"
-    else
-      printf '%-30s %s\n' "$n" 'NOT INSTALLED'
-      failures=$((failures + 1))
-    fi
-  done < <(profile_server_names)
-
-  if (( failures > 0 )); then
-    printf 'status:      FAILED (%d required component%s unavailable)\n' \
-      "$failures" "$([[ $failures -eq 1 ]] && printf '' || printf 's')"
-    return 1
-  fi
-  printf 'status:      OK\n'
+  list_servers
 }
 
 show_versions() {
@@ -439,7 +325,7 @@ lock_source() {
   platform_detect; mkdir_layout; install_node
   cp "$NPM_PACKAGE_FILE" "${NPM_DIR}/package.json"
   rm -f "${NPM_DIR}/package-lock.json"
-  npm_run_in_dir "$NPM_DIR" install --package-lock-only --ignore-scripts --no-audit --no-fund
+  (cd "$NPM_DIR" && npm_run install --package-lock-only --ignore-scripts --no-audit --no-fund)
   cp "${NPM_DIR}/package-lock.json" "$NPM_LOCK_FILE"
   log "Wrote complete lockfile: ${NPM_LOCK_FILE}"
 }
