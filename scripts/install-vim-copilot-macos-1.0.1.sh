@@ -39,11 +39,11 @@ cat <<'NEXT'
 macOS Copilot prerequisites are ready.
 
 Next steps:
-  1. Start Vim with the 1.5.2 macOS configuration (package 2.7.2).
-  2. Run :PlugInstall (or :PlugUpdate).
+  1. Start Vim with the 1.5.2.1 macOS configuration (package 2.7.2.1).
+  2. Set g:kd_enable_copilot = v:true in vimrc.before.local, restart Vim, then run :PlugInstall (or :PlugUpdate).
   3. Run :Copilot setup and authenticate your GitHub Copilot account.
   4. Run :KDAIHealth.
 
-The macOS 1.5.0 profile enables GitHub Copilot ghost-text completion only.
+The macOS 1.5.2.1 profile offers optional GitHub Copilot ghost-text completion (disabled by default).
 The OpenAI Codex Vim command integration remains Linux-only.
 NEXT

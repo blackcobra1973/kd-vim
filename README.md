@@ -1,6 +1,6 @@
-# Vim configuration 1.5.2 — distribution package 2.7.2
+# Vim configuration 1.5.2.1 — distribution package 2.7.2.1
 
-**Release date:** 2026-10-29  
+**Release date:** 2026-10-31  
 **Editor:** classic Vim 9.x, not Neovim  
 **LSP client:** `yegappan/lsp`  
 **Asynchronous linting:** `dense-analysis/ale`  
@@ -8,8 +8,8 @@
 **Targets:** native Linux, native macOS, Windows MobaXterm, Windows WSL2
 
 This is the complete installation, migration, operating and troubleshooting manual for
-package **2.7.2**. The Vim configuration itself is **1.5.2**. They are different
-version numbers on purpose. No other Vimrc snapshots or ddc variants are included.
+package **2.7.2.1**. The Vim configuration itself is **1.5.2.1**. They are different
+version numbers on purpose. No older Vimrc snapshots or ddc variants are included.
 
 ## Table of contents
 
@@ -35,13 +35,12 @@ version numbers on purpose. No other Vimrc snapshots or ddc variants are include
 
 ## 1. What changed
 
-Version 2.7.2 makes GitHub Copilot and Codex **disabled unless explicitly opted
-in using booleans**, without changing any other plugin or LSP defaults.
+Hotfix 2.7.2.1 restores the manual `:FixWhitespace` command, removes the misleading trailing-space dots, and restores MobaXterm npm TLS/CA compatibility. Existing AI defaults,
+plugin choices, and language-server versions are unchanged.
 
-
-This is a focused opt-in AI-controls update based on the 2.7.1 plugin-cleanup
-package. **OS isolation is unchanged**: Linux, macOS, MobaXterm and WSL2 have
-separate and complete Vimrc files. The language-server managers, npm pins and YAML/Ansible diagnostic policy remain unchanged.
+This is a focused maintenance hotfix for 2.7.2, incorporating the whitespace corrections and MobaXterm TLS compatibility fix.
+**OS isolation is unchanged:** Linux, macOS, MobaXterm and WSL2 have
+separate and complete Vimrc files. The language-server pins and YAML/Ansible diagnostic policy remain unchanged. The MobaXterm manager is updated to 1.1.3 to restore Node/npm CA support.
 Copilot and Codex are now opt-in and **off by default on all platforms**.
 
 - **Lightline is now the only statusline.** The older plugin declarations,
@@ -53,7 +52,7 @@ Copilot and Codex are now opt-in and **off by default on all platforms**.
   labels instead of modifying buffer text, so it doesn't disturb diagnostics.
 - **Expand Region** replaces archived Wildfire for growing/shrinking a selection.
 - Native Vim `listchars` is the default whitespace visualization, instead of
-  an indent plugin. The original space-based indent guides remain optional.
+  an indent plugin; **no `trail:.` or `nbsp:.` dot markers remain**. The original space-based indent guides remain optional.
   `Yggdroot/indentLine` was deliberately NOT added: upstream archived it, and
   its conceal semantics can obscure YAML/JSON markup.
 - `vim-over`, NERDTree, EasyMotion, Wildfire, and vim-indent-guides can still
@@ -68,9 +67,8 @@ Copilot and Codex are now opt-in and **off by default on all platforms**.
 - All other intended optional bundles have been preserved. **No plugin version
   snapshots, SHA pins or plugin reproducibility feature have been introduced.**
 
-**Versioning:** the Vimrc files have configuration revision **1.5.2** and the
-full archive is release **2.7.2**. The two LSP manager scripts keep their own
-existing script version. You do not need to reinstall language servers just
+**Versioning:** the Vimrc files have configuration revision **1.5.2.1** and the
+full archive is release **2.7.2.1**. The two LSP manager scripts have independent versions; the MobaXterm manager is now 1.1.3, while Linux/macOS stays 1.1.0. You do not need to reinstall language servers just
 because plugin declarations changed.
 
 ## 2. Choose exactly one platform
@@ -93,10 +91,10 @@ executables. Use Linux `node`, npm and `terraform-ls`, never the Windows
 ## 3. Package contents
 
 ```text
-vim-2.7.2-package/
+vim-2.7.2.1-package/
 ├── README.md
-├── VIM-2.7.2-MAINTENANCE.md
-├── vim-2.7.2-SHA256SUMS.txt
+├── VIM-2.7.2.1-MAINTENANCE.md
+├── vim-2.7.2.1-SHA256SUMS.txt
 ├── vimrc-linux-lsp
 ├── vimrc-macos-lsp
 ├── vimrc-windows-mobaxterm-lsp
@@ -187,7 +185,7 @@ new OS-specific template; do not blindly discard site-specific settings.
 
 ## 6. Linux
 
-From the extracted `vim-2.7.2-package/` directory:
+From the extracted `vim-2.7.2.1-package/` directory:
 
 ```bash
 cp -p vimrc-linux-lsp "$HOME/.vimrc"
@@ -339,8 +337,7 @@ The Linux AI installer is optional; review it and its use of `sudo` first.
 
 ## 10. LSP manager and server lifecycle
 
-Two tested platform-specific **manager** scripts exist, both script version
-1.1.0. They own server deployment and are NOT Vimrc files:
+Two platform-specific **manager** scripts exist: Linux/macOS version **1.1.0** and MobaXterm version **1.1.3**. They own server deployment and are NOT Vimrc files:
 
 | Action | Linux / macOS / WSL2 | MobaXterm |
 |---|---|---|
@@ -380,6 +377,8 @@ regular plugins. Back up custom files in the manager root before cleaning it.
 `package-lock.json` is a seed lock and is expanded into a full transitive lock
 on first install; full offline reproducibility is therefore **not** claimed.
 
+The npm seed metadata uses `2.7.2-patch.1` because npm package versions require SemVer, whereas the distribution release is named `2.7.2.1`. npm dependency versions have not been upgraded.
+
 The Docker Language Server asset has a version suffix in its name. That was
 fixed in the previous manager version: `docker-language-server-${OS}-${ARCH}-v${DOCKER_LS_VERSION}`
 (with `.exe` on MobaXterm). The manager refuses installation if a published
@@ -401,6 +400,35 @@ whatever upstream advertises as the newest version.
  tools/lsp/lsp-manager-mobaxterm.sh install --profile mobaxterm \
    --ca-bundle "$HOME/company-ca-bundle.pem" --strict-tls
 ```
+
+### MobaXterm npm/Node CA behavior (manager 1.1.3)
+
+The MobaXterm manager first invokes Windows Node/npm via its real `npm.cmd`
+through `cmd.exe`, with `NODE_USE_SYSTEM_CA=1` so Node 24 trusts CAs in the
+Windows certificate store. With `--ca-bundle FILE`, the path is translated
+using `cygpath -w` and passed as **both** `NODE_EXTRA_CA_CERTS` and
+`npm_config_cafile`; the downloader still uses that bundle for curl/wget.
+Verified npm installs always use `npm_config_strict_ssl=true` first.
+
+Only when npm fails with a recognized certificate-chain error, and only
+without `--strict-tls` / `--no-insecure-fallback`, the manager logs an explicit
+warning and retries that **single npm command** with
+`npm_config_strict_ssl=false`. It does not persist the exception to `.npmrc`
+and does not disable Node TLS validation globally. That exception cannot
+replace trustworthy CA configuration: use a CA bundle or import the
+authorized proxy root certificate in the Windows trust store.
+
+For example, on MobaXterm:
+
+```bash
+tools/lsp/lsp-manager-mobaxterm.sh install --profile mobaxterm \
+  --ca-bundle "$HOME/company-ca-bundle.pem" --strict-tls
+```
+
+`npm ci` still uses package integrity metadata for packages whose lock entries
+include it; the included **seed** npm lock expands via the registry on first
+install and cannot be considered completely reproducible or independently
+authenticated if the TLS exception is used.
 
 ## 11. Plugin and completion architecture
 
@@ -460,11 +488,39 @@ plugin when installed. Stargate's `<Cmd>` mappings also work in Visual and
 operator-pending modes. Fern's `:Fern . -drawer -toggle -keep` is used for the
 browser; NERDTree has its original commands when selected instead.
 
-**Indentation note:** Native `listchars` renders tabs, trailing whitespace and
-nonbreaking spaces. It does **not** draw every two-space YAML indentation
+**Indentation note:** Native `listchars` renders tabs and a distinctive marker
+for nonbreaking spaces, **not dots at the end of lines**. Ordinary trailing spaces
+remain visually blank until removed on save. It does **not** draw every two-space YAML indentation
 level. Choose `g:kd_indent_display = 'vim-indent-guides'` if you still want
 vertical markers in space-indented code. The legacy plugin starts disabled,
 and `<F8>` toggles it. We do not enable `conceal` to fake guides.
+
+### Whitespace cleanup (2.7.2.1 bugfix)
+
+The function **`FixWhitespace()`** is restored in all four platform Vimrc files.
+Use `:FixWhitespace` in normal mode to clean the current editable buffer. It
+removes trailing **spaces and tabs** from all lines and removes surplus empty
+lines at the end of the buffer. It does **not** remove indentation or spaces
+inside text; it preserves the cursor, view and previous search pattern.
+
+On `:write`, the same cleanup is automatic for common code and configuration
+filetypes, including `yaml`, `yaml.ansible`, `yml`, Python, shell scripts, Vim,
+JSON, and Terraform. Markdown and other prose, `diff`/patch files and Makefiles
+are deliberately **excluded** from automatic cleanup because trailing spaces
+can have meaning in them. A manual `:FixWhitespace` is still available for them
+if that is what you intend. A compatibility function named
+`StripTrailingWhitespace()` remains for existing user mappings.
+
+To opt out of automatic save cleanup for any buffer, set this in the relevant
+`~/.vimrc.before.local` file:
+
+```vim
+let g:kd_keep_trailing_whitespace = 1
+```
+
+The native `listchars` still shows tab characters and uses `+` for NBSP, but
+never renders the ordinary trailing spaces as `.` characters. No file contents
+are changed merely by opening or typing in a buffer.
 
 ### Optional plugin bundles
 
@@ -679,6 +735,8 @@ project-specific mappings outside the plugin replacements remain intact.
 
 ## 16. Certificates, proxies and security
 
+For MobaXterm npm, manager **1.1.3** enables Windows system trust, propagates `--ca-bundle`, and has a guarded one-command npm `strict-ssl=false` fallback.
+
 The safest way to handle an internal TLS-intercepting proxy is to install its
 trust anchor in the platform CA store or use a complete trusted bundle with
 `--ca-bundle`. The LSP managers also support `--strict-tls`, which disables
@@ -786,7 +844,7 @@ Ensure the matching `vimrc.before.local-*` template was copied to
 
 ## 19. Validation and release policy
 
-For **2.7.2** the archive includes the latest versions of files only:
+For **2.7.2.1** the archive includes the latest versions of files only:
 
 - one standalone Vimrc and one before-local template for each of the four OSes;
 - two maintained LSP manager scripts (native Linux/macOS and MobaXterm);
@@ -804,15 +862,15 @@ operating systems have not been executed in this build environment**.
 To verify the completed tar.gz after download:
 
 ```bash
-sha256sum -c vim-2.7.2.tar.gz.sha256
-tar -tzf vim-2.7.2.tar.gz
+sha256sum -c vim-2.7.2.1.tar.gz.sha256
+tar -tzf vim-2.7.2.1.tar.gz
 ```
 
 To verify contents after extraction:
 
 ```bash
-cd vim-2.7.2-package
-sha256sum -c vim-2.7.2-SHA256SUMS.txt
+cd vim-2.7.2.1-package
+sha256sum -c vim-2.7.2.1-SHA256SUMS.txt
 ```
 
 On macOS without GNU `sha256sum`, use `shasum -a 256` for individual files.

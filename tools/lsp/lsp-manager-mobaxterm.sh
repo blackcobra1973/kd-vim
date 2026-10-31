@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.1.0"
+SCRIPT_VERSION="1.1.3"
 SCRIPT_NAME="lsp-manager-mobaxterm.sh"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 VERSIONS_FILE="${SCRIPT_DIR}/versions.conf"
@@ -35,8 +35,8 @@ Usage:
 
 Options:
   --profile mobaxterm|minimal
-  --ca-bundle FILE          Use a custom CA bundle for curl/wget.
-  --strict-tls              Never use an insecure TLS fallback.
+  --ca-bundle FILE          Trusted PEM CA bundle for curl/wget AND Node/npm.
+  --strict-tls              Never use an insecure download or npm TLS retry.
   --no-insecure-fallback    Alias for --strict-tls.
   --yes                     Required by clean.
   --home DIR                Override manager root (default: ${LSP_HOME}).
@@ -49,6 +49,8 @@ Profiles:
 This manager is specifically for MobaXterm/Cygwin/MSYS on Windows.
 It executes the private Windows Node distribution through cmd.exe and uses
 cygpath for every native Windows path passed to node/npm.
+Node trusts Windows system CAs; npm uses a provided CA bundle if configured.
+The insecure npm retry is limited to confirmed certificate-chain errors.
 USAGE
 }
 
@@ -132,6 +134,30 @@ mkdir_layout() { mkdir -p "$BIN_DIR" "$NPM_DIR" "$SERVER_DIR" "$NODE_HOME" "$CAC
 
 winpath() { cygpath -w "$1"; }
 
+validate_ca_bundle() {
+  if [[ -n "$CA_BUNDLE" ]]; then
+    [[ -f "$CA_BUNDLE" && -r "$CA_BUNDLE" ]] || die "CA bundle is not a readable file: $CA_BUNDLE"
+    # cygpath expects an absolute path; retain a normalized path for curl/wget.
+    CA_BUNDLE="$(cd -- "$(dirname -- "$CA_BUNDLE")" && pwd -P)/$(basename -- "$CA_BUNDLE")"
+  fi
+}
+
+configure_windows_node_tls() {
+  # Node >=24.6 can use the Windows certificate store. This is safe by default.
+  export NODE_USE_SYSTEM_CA=1
+  if [[ -n "$CA_BUNDLE" ]]; then
+    local ca_win
+    ca_win="$(winpath "$CA_BUNDLE")"
+    export NODE_EXTRA_CA_CERTS="$ca_win"
+    export npm_config_cafile="$ca_win"
+  fi
+}
+
+npm_cert_chain_failure() {
+  local logfile="$1"
+  grep -Eiq 'SELF_SIGNED_CERT_IN_CHAIN|DEPTH_ZERO_SELF_SIGNED_CERT|UNABLE_TO_VERIFY_LEAF_SIGNATURE|UNABLE_TO_GET_ISSUER_CERT|self[- ]signed certificate|unable to verify (the )?first certificate|certificate (chain|verify|verification) (error|failed)' "$logfile"
+}
+
 install_node() {
   mkdir_layout
   local archive url actual tmpdir extracted
@@ -160,21 +186,44 @@ node_run() {
   local node node_win
   node="$(node_cmd)" || die "Private Node runtime not installed"
   node_win="$(winpath "$node")"
+  configure_windows_node_tls
   cmd.exe /d /s /c "\"${node_win}\" $*"
 }
 
 npm_run() {
-  local npm npm_win cwd_win
+  local npm npm_win cwd_win logfile status=0
   npm="$(npm_cmd)" || die "npm.cmd not found in private Node runtime"
   npm_win="$(winpath "$npm")"
   cwd_win="$(winpath "$PWD")"
-  # Do not invoke node.exe with a POSIX npm-cli.js path. Native node.exe would
-  # reinterpret /home/... as C:\\home\\..., which is not MobaXterm's real home.
-  # npm.cmd resolves node.exe and npm-cli.js relative to its own Windows path.
+  # Windows npm.cmd resolves node.exe/npm-cli.js relative to its own location.
+  # Passing a POSIX npm-cli.js path to native node.exe would break in MobaXterm.
   (
     mkdir -p "${CACHE_DIR}/npm-cache"
     export npm_config_cache="$(winpath "${CACHE_DIR}/npm-cache")"
-    cmd.exe /d /s /c "cd /d \"${cwd_win}\" && call \"${npm_win}\" $*"
+    configure_windows_node_tls
+    # Do not allow an inherited insecure npm setting to weaken the first pass.
+    export npm_config_strict_ssl=true
+    logfile="$(mktemp "${CACHE_DIR}/npm-command.XXXXXXXX.log")"
+    # Capture stderr as well: npm prints certificate failure codes there.
+    # Preserve the return status; do not let `set -e` exit before inspection.
+    if cmd.exe /d /s /c "cd /d \"${cwd_win}\" && call \"${npm_win}\" $*" >"$logfile" 2>&1; then
+      cat "$logfile"
+      rm -f "$logfile"
+      exit 0
+    else
+      status=$?
+    fi
+    cat "$logfile" >&2
+    if (( STRICT_TLS == 0 && ALLOW_INSECURE_FALLBACK == 1 )) && npm_cert_chain_failure "$logfile"; then
+      warn "npm failed due to an untrusted certificate chain; retrying this npm command once with strict-ssl=false. This reduces registry transport authenticity. Install the trusted CA or use --ca-bundle FILE --strict-tls instead."
+      export npm_config_strict_ssl=false
+      rm -f "$logfile"
+      # Scoped to this subshell and this invocation: does NOT write to .npmrc.
+      cmd.exe /d /s /c "cd /d \"${cwd_win}\" && call \"${npm_win}\" $*"
+      exit $?
+    fi
+    rm -f "$logfile"
+    exit "$status"
   )
 }
 
@@ -344,6 +393,7 @@ while (($#)); do
   esac
 done
 [[ "$ACTION" == help ]] || log "${SCRIPT_NAME} version ${SCRIPT_VERSION}"
+validate_ca_bundle
 case "$ACTION" in
   install|update) platform_detect; need unzip; install_profile ;;
   check) check_install ;;
